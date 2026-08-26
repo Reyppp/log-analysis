@@ -24,5 +24,6 @@ release/
 *.p12
 settings.json
 SHA256SUMS.txt
+context-summary.md
 !site/assets/*.png
 !site/assets/*.jpg

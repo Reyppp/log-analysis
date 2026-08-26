@@ -15,9 +15,38 @@
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/Reyppp/log-analysis/releases) 下载 Windows x64 安装程序，并使用同一版本的 `SHA256SUMS.txt` 核对文件。
+### 系统要求
 
-首个 `v0.1.0-beta.1` 是未签名测试版，Windows SmartScreen 或组织安全策略可能发出警告。运行需要 Windows 10/11 x64 和 Microsoft Edge WebView2 Runtime。
+- Windows 10/11 x64。
+- Microsoft Edge WebView2 Runtime；Windows 10/11 通常已经安装，缺失时安装程序会显示下载指引。
+
+### 下载与校验
+
+1. 升级前先关闭所有正在运行的 Log Analysis 窗口。
+2. 下载 [Log Analysis v0.1.0-beta.3 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/Log-Analysis-Setup-v0.1.0-beta.3-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.3)。
+3. 在下载目录打开 PowerShell，运行：
+
+```powershell
+Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.3-x64.exe
+Get-Content .\SHA256SUMS.txt
+```
+
+4. 确认两处显示的 64 位 SHA-256 完全一致；不一致时不要运行安装程序，请重新下载。
+
+### 安装与首次使用
+
+1. 双击 `Log-Analysis-Setup-v0.1.0-beta.3-x64.exe`。
+2. 按安装向导继续；程序默认安装到当前用户目录，不需要管理员权限，桌面快捷方式可选。
+3. 当前版本是未签名测试版。若 SmartScreen 显示“Windows 已保护你的电脑”，请先确认 SHA-256 已匹配，再选择“更多信息”，核对文件名后选择“仍要运行”。如果组织安全策略禁止运行，请联系管理员，不要关闭系统安全功能。
+4. 安装完成后，从开始菜单打开 **Log Analysis**。
+5. 点击“选择文件夹”，选择炉次日志目录，再点击“开始分析”。所有数据只在本机处理。
+
+覆盖安装会保留上次选择的炉次路径。卸载默认保留设置，也可以在卸载时选择同时删除。
+
+### 已知限制
+
+- 这是未签名测试版，SmartScreen 或组织安全策略可能发出警告。
+- 部分安装环境中，单层详情图表或原始截图可能不显示；该问题仍在修复，不影响逐层汇总和其他全炉分析页面。
 
 ## 开发运行
 
