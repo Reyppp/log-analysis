@@ -24,7 +24,7 @@ jobs:
         shell: pwsh
         run: |
           $appVersion = python -c "from version import APP_VERSION; print(APP_VERSION)"
-          if ('v' + $appVersion) -ne '${{ github.ref_name }}') { throw "Tag and version.py do not match" }
+          if (('v' + $appVersion) -ne '${{ github.ref_name }}') { throw "Tag and version.py do not match" }
       - name: Build application
         shell: pwsh
         run: |
