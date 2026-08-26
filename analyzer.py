@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 
@@ -154,7 +154,10 @@ def _convert_numeric(frame: pd.DataFrame, columns: list[str], scope: str, layer:
     for column in columns:
         raw = result[column]
         converted = pd.to_numeric(raw, errors="coerce")
-        invalid = raw.notna() & raw.astype(str).str.strip().ne("") & converted.isna()
+        invalid = raw.notna() & converted.isna()
+        if invalid.any():
+            candidates = raw.loc[invalid].astype(str).str.strip()
+            invalid.loc[candidates.index[candidates.eq("")]] = False
         if invalid.any():
             _quality(
                 quality,
@@ -286,10 +289,16 @@ def _parse_events(log_paths: list[Path], recipe_materials: list[str], quality: l
     }
 
 
-def analyze_folder(folder: str | Path) -> AnalysisResult:
+def analyze_folder(
+    folder: str | Path,
+    progress: Callable[[str, int, int], None] | None = None,
+) -> AnalysisResult:
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
         raise AnalysisError(f"文件夹不存在：{root}")
+
+    if progress:
+        progress("索引文件", 0, 0)
 
     quality: list[dict[str, Any]] = []
     profile: dict[str, set[str]] = {}
@@ -386,7 +395,8 @@ def analyze_folder(folder: str | Path) -> AnalysisResult:
     }
     machine_numeric = sorted(machine_required - {"LayNum", "Timer"})
 
-    for recipe_row in recipe.to_dict("records"):
+    total_layers = len(expected)
+    for layer_index, recipe_row in enumerate(recipe.to_dict("records"), start=1):
         layer = int(recipe_row["layer"])
         material = str(recipe_row["Material"]).strip()
         method = str(recipe_row["Method"]).strip()
@@ -525,6 +535,8 @@ def analyze_folder(folder: str | Path) -> AnalysisResult:
                 row["machine_rows"] = len(machine)
 
         summaries.append(row)
+        if progress:
+            progress("逐层读取", layer_index, total_layers)
 
     layer_summary = pd.DataFrame(summaries).sort_values("layer").reset_index(drop=True)
     for column in SUMMARY_COLUMNS:
@@ -532,6 +544,8 @@ def analyze_folder(folder: str | Path) -> AnalysisResult:
             layer_summary[column] = math.nan
     layer_summary = layer_summary[SUMMARY_COLUMNS]
     log_paths = sorted((root / "CoatingLog").glob("*.log")) if (root / "CoatingLog").is_dir() else []
+    if progress:
+        progress("事件汇总", total_layers, total_layers)
     if not log_paths:
         _quality(quality, "警告", "CoatingLog", "日志缺失", "未找到 .log 文件")
     for path in log_paths:
@@ -585,7 +599,11 @@ def analyze_folder(folder: str | Path) -> AnalysisResult:
         "ignored_date_csvs": ignored_date_csvs,
         "hidden_summary_metrics": hidden_summary_metrics,
     }
+    if progress:
+        progress("统计计算", total_layers, total_layers)
     anomalies = detect_anomalies(layer_summary, 3.5)
+    if progress:
+        progress("完成", total_layers, total_layers)
     return AnalysisResult(batch_summary, layer_summary, anomalies, data_quality, constant_fields, file_index, events)
 
 

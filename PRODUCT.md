@@ -28,7 +28,7 @@ Log Analysis 将分散的镀膜日志只读汇总为可筛选、可视化、可�
 - 保留总览、理论趋势、光学、设备、异常关联五个模块和 CSV 导出。
 - 中文界面为主，核心入口保持 `analyze_folder(path) -> AnalysisResult`。
 - 第一版只支持 Windows x64，不提供在线分析、数据库、账号或自动更新。
-- 首个二进制版本是未签名测试版 `v0.1.0-beta.1`。
+- 当前二进制版本是未签名测试版 `v0.1.0-beta.3`。
 
 ## Brand Commitments
 

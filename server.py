@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import mimetypes
 import os
 import secrets
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -16,15 +18,23 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 from plotly.offline import get_plotlyjs
 
-from analyzer import AnalysisError, analyze_folder, compute_correlations, csv_bytes, detect_anomalies, load_layer_detail
+from analyzer import AnalysisError, analyze_folder, compute_correlations, csv_bytes, detect_anomalies, load_layer_detail, source_fingerprint
 from version import APP_NAME, APP_VERSION, BUILD_CHANNEL
 
 
 SOURCE_ROOT = Path(__file__).resolve().parent
 RESOURCE_ROOT = Path(getattr(sys, "_MEIPASS", SOURCE_ROOT))
 LEGACY_LAST_FOLDER = SOURCE_ROOT / ".last_folder.txt"
-STATE: dict[str, object] = {"path": "", "result": None}
+STATE: dict[str, object] = {
+    "path": "",
+    "result": None,
+    "fingerprint": None,
+    "correlations": None,
+    "progress": {"status": "idle", "phase": "", "current": 0, "total": 0, "elapsed": 0.0},
+}
 FOLDER_DIALOG_LOCK = threading.Lock()
+ANALYSIS_LOCK = threading.Lock()
+LOGGER = logging.getLogger(__name__)
 
 
 class FolderDialogError(RuntimeError):
@@ -66,7 +76,24 @@ def save_path(path: str) -> None:
     os.replace(temporary, target)
 
 
-def choose_folder() -> tuple[str, bool]:
+def apply_folder_selection(selected: str) -> tuple[str, bool, bool]:
+    if not selected:
+        return str(STATE.get("path") or saved_path()), True, False
+    path = str(Path(selected).resolve())
+    changed = path != str(STATE.get("path") or saved_path())
+    save_path(path)
+    STATE["path"] = path
+    if changed:
+        STATE.update(
+            result=None,
+            fingerprint=None,
+            correlations=None,
+            progress={"status": "idle", "phase": "", "current": 0, "total": 0, "elapsed": 0.0},
+        )
+    return path, False, changed
+
+
+def choose_folder() -> tuple[str, bool, bool]:
     """Open a Windows STA folder dialog without blocking the HTTP worker GUI thread."""
     previous = saved_path()
     if not FOLDER_DIALOG_LOCK.acquire(blocking=False):
@@ -110,13 +137,17 @@ try {
     if completed.returncode:
         detail = completed.stderr.strip() or "Windows 文件夹选择器未能启动"
         raise FolderDialogError(detail)
-    selected = completed.stdout.strip().lstrip("\ufeff")
-    if selected:
-        path = str(Path(selected).resolve())
-        save_path(path)
-        STATE["path"] = path
-        return path, False
-    return str(STATE.get("path") or saved_path()), True
+    return apply_folder_selection(completed.stdout.strip().lstrip("\ufeff"))
+
+
+def set_progress(status: str, phase: str, current: int, total: int, started: float) -> None:
+    STATE["progress"] = {
+        "status": status,
+        "phase": phase,
+        "current": current,
+        "total": total,
+        "elapsed": round(max(0.0, time.monotonic() - started), 1),
+    }
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -173,8 +204,8 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             if parsed.path == "/api/choose-folder":
                 try:
-                    path, cancelled = choose_folder()
-                    self.send_json({"path": path, "cancelled": cancelled})
+                    path, cancelled, changed = choose_folder()
+                    self.send_json({"path": path, "cancelled": cancelled, "changed": changed})
                 except FolderDialogError as exc:
                     self.send_json(
                         {
@@ -190,27 +221,70 @@ class Handler(SimpleHTTPRequestHandler):
                 requested = request.get("path", "")
                 threshold = float(request.get("threshold", 3.5))
                 path = str(requested or STATE.get("path") or saved_path())
-                result = analyze_folder(path)
-                STATE.update(path=path, result=result)
-                save_path(path)
-                self.send_json(
-                    {
+                if not ANALYSIS_LOCK.acquire(blocking=False):
+                    self.send_json(
+                        {
+                            "error": "已有分析任务正在运行。",
+                            "code": "analysis_busy",
+                            "recovery": "请等待当前进度完成后再试。",
+                        },
+                        HTTPStatus.CONFLICT,
+                    )
+                    return
+                started = time.monotonic()
+                set_progress("running", "索引文件", 0, 0, started)
+                try:
+                    fingerprint = source_fingerprint(path)
+                    cached = (
+                        STATE.get("result") is not None
+                        and path == STATE.get("path")
+                        and fingerprint == STATE.get("fingerprint")
+                    )
+                    if cached:
+                        result = STATE["result"]
+                        correlations = STATE.get("correlations")
+                        set_progress("running", "缓存复用", len(result.layer_summary), len(result.layer_summary), started)
+                    else:
+                        result = analyze_folder(
+                            path,
+                            lambda phase, current, total: set_progress("running", phase, current, total, started),
+                        )
+                        correlations = compute_correlations(result.layer_summary)
+                        STATE.update(path=path, result=result, fingerprint=fingerprint, correlations=correlations)
+                    save_path(path)
+                    anomalies = result.anomalies if threshold == 3.5 else detect_anomalies(result.layer_summary, threshold)
+                    response = {
                         "batch": result.batch_summary,
                         "summary": frame_records(result.layer_summary),
-                        "anomalies": frame_records(detect_anomalies(result.layer_summary, threshold)),
+                        "anomalies": frame_records(anomalies),
                         "quality": frame_records(result.data_quality),
                         "constants": frame_records(result.constant_fields),
                         "events": result.events,
-                        "correlations": frame_records(compute_correlations(result.layer_summary)),
+                        "correlations": frame_records(correlations),
                     }
-                )
+                    set_progress("completed", "完成", len(result.layer_summary), len(result.layer_summary), started)
+                    self.send_json(response)
+                    LOGGER.info("analysis completed cached=%s layers=%s elapsed=%.3fs", cached, len(result.layer_summary), time.monotonic() - started)
+                except Exception:
+                    current = dict(STATE.get("progress") or {})
+                    set_progress("failed", str(current.get("phase") or "分析"), int(current.get("current") or 0), int(current.get("total") or 0), started)
+                    raise
+                finally:
+                    ANALYSIS_LOCK.release()
                 return
             self.send_error(HTTPStatus.NOT_FOUND)
         except (AnalysisError, ValueError) as exc:
             self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
-        except Exception as exc:  # Keep the local page responsive when a malformed log appears.
-            self.send_json({"error": f"分析失败：{exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
-
+        except Exception as exc:
+            LOGGER.exception("request failed")
+            self.send_json(
+                {
+                    "error": f"分析失败：{exc}",
+                    "code": "analysis_failed",
+                    "recovery": "请确认炉次文件完整后重试；若仍失败，请查看运行日志。",
+                },
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
@@ -236,6 +310,16 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             result = STATE.get("result")
             params = parse_qs(parsed.query)
+            if parsed.path == "/api/progress":
+                self.send_json(dict(STATE.get("progress") or {}))
+                return
+            if parsed.path == "/api/anomalies":
+                if result is None:
+                    raise AnalysisError("请先完成炉次分析")
+                threshold = float(params.get("threshold", ["3.5"])[0])
+                anomalies = result.anomalies if threshold == 3.5 else detect_anomalies(result.layer_summary, threshold)
+                self.send_json({"anomalies": frame_records(anomalies)})
+                return
             if parsed.path == "/api/layer":
                 if result is None:
                     raise AnalysisError("请先完成炉次分析")
@@ -271,6 +355,8 @@ class Handler(SimpleHTTPRequestHandler):
 def create_server(port: int = 0, token: str = "") -> ThreadingHTTPServer:
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     httpd.api_token = token
+    httpd.daemon_threads = True
+    httpd.block_on_close = False
     return httpd
 
 

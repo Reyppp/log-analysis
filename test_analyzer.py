@@ -2,6 +2,7 @@ import os
 import tempfile
 import threading
 import unittest
+import json
 import urllib.request
 from urllib.error import HTTPError
 from datetime import datetime
@@ -22,6 +23,7 @@ from analyzer import (
     source_fingerprint,
 )
 import server
+import desktop
 
 
 GOLDEN_PATH = os.environ.get("LOG_ANALYSIS_GOLDEN_FOLDER")
@@ -116,10 +118,72 @@ class AnalyzerTests(unittest.TestCase):
         with patch.object(server, "saved_path", return_value=previous), patch.object(
             server.subprocess, "run", return_value=completed
         ) as run, patch.dict(server.STATE, {"path": previous, "result": None}, clear=True):
-            path, cancelled = server.choose_folder()
+            path, cancelled, changed = server.choose_folder()
         self.assertEqual(path, previous)
         self.assertTrue(cancelled)
+        self.assertFalse(changed)
         self.assertIn("-STA", run.call_args.args[0])
+
+    def test_folder_picker_changed_path_clears_old_result(self):
+        with tempfile.TemporaryDirectory() as folder:
+            completed = SimpleNamespace(returncode=0, stdout=folder, stderr="")
+            with patch.object(server, "saved_path", return_value=r"C:\Logs\Old-Batch"), patch.object(
+                server.subprocess, "run", return_value=completed
+            ), patch.object(server, "save_path"), patch.dict(
+                server.STATE,
+                {"path": r"C:\Logs\Old-Batch", "result": object(), "fingerprint": ("old",), "correlations": object()},
+                clear=True,
+            ):
+                path, cancelled, changed = server.choose_folder()
+                self.assertEqual(path, str(Path(folder).resolve()))
+                self.assertFalse(cancelled)
+                self.assertTrue(changed)
+                self.assertIsNone(server.STATE["result"])
+                self.assertIsNone(server.STATE["fingerprint"])
+
+    def test_desktop_uses_native_explorer_folder_dialog(self):
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            api = desktop.DesktopApi()
+            api.window = SimpleNamespace(
+                create_file_dialog=lambda dialog, **kwargs: calls.append((dialog, kwargs)) or (folder,)
+            )
+            with patch.object(server, "saved_path", return_value=folder), patch.object(server, "save_path"), patch.dict(
+                server.STATE, {"path": folder, "result": object()}, clear=True
+            ):
+                result = api.choose_folder()
+            self.assertEqual(calls[0][0], desktop.webview.FileDialog.FOLDER)
+            self.assertEqual(calls[0][1]["directory"], folder)
+            self.assertFalse(result["cancelled"])
+            self.assertFalse(result["changed"])
+
+    def test_progress_callback_reaches_completion(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pd.DataFrame(
+                [{"Layer#": 1, "Material": "H", "PhyThick": 10, "Rate": 0.2, "Time": 50,
+                  "Start T": 0.1, "End T": 0.2, "Extreme#": 1, "Method": "OMS"}]
+            ).to_csv(root / "recipe.csv", index=False)
+            progress = []
+            analyze_folder(root, lambda phase, current, total: progress.append((phase, current, total)))
+            self.assertIn(("逐层读取", 1, 1), progress)
+            self.assertEqual(progress[-1], ("完成", 1, 1))
+
+    def test_numeric_validation_keeps_blank_and_flags_invalid(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pd.DataFrame(
+                [
+                    {"Layer#": 1, "Material": "H", "PhyThick": 10, "Rate": "", "Time": 50,
+                     "Start T": 0.1, "End T": 0.2, "Extreme#": 1, "Method": "OMS"},
+                    {"Layer#": 2, "Material": "L", "PhyThick": 20, "Rate": "invalid", "Time": 60,
+                     "Start T": 0.2, "End T": 0.3, "Extreme#": 2, "Method": "Timer"},
+                ]
+            ).to_csv(root / "recipe.csv", index=False)
+            result = analyze_folder(root)
+            invalid = result.data_quality[result.data_quality["issue"] == "非法数值"]
+            self.assertEqual(len(invalid), 1)
+            self.assertIn("Rate: 1", invalid.iloc[0]["detail"])
 
     def test_health_endpoint_identifies_service(self):
         httpd = server.create_server()
@@ -130,7 +194,7 @@ class AnalyzerTests(unittest.TestCase):
                 body = response.read().decode("utf-8")
             self.assertIn('"service": "coating-analyzer"', body)
             self.assertIn('"app_name": "Log Analysis"', body)
-            self.assertIn('"app_version": "0.1.0-beta.1"', body)
+            self.assertIn('"app_version": "0.1.0-beta.3"', body)
         finally:
             httpd.shutdown()
             httpd.server_close()
@@ -138,6 +202,8 @@ class AnalyzerTests(unittest.TestCase):
 
     def test_desktop_token_protects_local_data_api(self):
         httpd = server.create_server(token="test-session-token")
+        self.assertTrue(httpd.daemon_threads)
+        self.assertFalse(httpd.block_on_close)
         worker = threading.Thread(target=httpd.serve_forever, daemon=True)
         worker.start()
         try:
@@ -155,6 +221,81 @@ class AnalyzerTests(unittest.TestCase):
             httpd.server_close()
             worker.join(timeout=2)
 
+    def test_server_uses_in_memory_cache_and_threshold_endpoint(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pd.DataFrame(
+                [{"Layer#": 1, "Material": "H", "PhyThick": 10, "Rate": 0.2, "Time": 50,
+                  "Start T": 0.1, "End T": 0.2, "Extreme#": 1, "Method": "OMS"}]
+            ).to_csv(root / "recipe.csv", index=False)
+            initial_state = {
+                "path": "", "result": None, "fingerprint": None, "correlations": None,
+                "progress": {"status": "idle", "phase": "", "current": 0, "total": 0, "elapsed": 0.0},
+            }
+            server.STATE.clear()
+            server.STATE.update(initial_state)
+            httpd = server.create_server()
+            worker = threading.Thread(target=httpd.serve_forever, daemon=True)
+            worker.start()
+            try:
+                body = json.dumps({"path": str(root), "threshold": 3.5}).encode("utf-8")
+                with patch.object(server, "save_path"), patch.object(server, "analyze_folder", wraps=analyze_folder) as analyze:
+                    for _ in range(2):
+                        request = urllib.request.Request(
+                            f"http://127.0.0.1:{httpd.server_port}/api/analyze",
+                            data=body,
+                            headers={"Content-Type": "application/json"},
+                            method="POST",
+                        )
+                        with urllib.request.urlopen(request) as response:
+                            self.assertEqual(response.status, 200)
+                    self.assertEqual(analyze.call_count, 1)
+                with urllib.request.urlopen(
+                    f"http://127.0.0.1:{httpd.server_port}/api/anomalies?threshold=4.0"
+                ) as response:
+                    self.assertIn("anomalies", json.loads(response.read()))
+                with urllib.request.urlopen(f"http://127.0.0.1:{httpd.server_port}/api/progress") as response:
+                    self.assertEqual(json.loads(response.read())["status"], "completed")
+            finally:
+                httpd.shutdown()
+                httpd.server_close()
+                worker.join(timeout=2)
+                server.STATE.clear()
+                server.STATE.update(initial_state)
+
+    def test_server_returns_structured_unexpected_analysis_error(self):
+        with tempfile.TemporaryDirectory() as folder:
+            initial_state = {
+                "path": "", "result": None, "fingerprint": None, "correlations": None,
+                "progress": {"status": "idle", "phase": "", "current": 0, "total": 0, "elapsed": 0.0},
+            }
+            server.STATE.clear()
+            server.STATE.update(initial_state)
+            httpd = server.create_server()
+            worker = threading.Thread(target=httpd.serve_forever, daemon=True)
+            worker.start()
+            try:
+                body = json.dumps({"path": folder, "threshold": 3.5}).encode("utf-8")
+                request = urllib.request.Request(
+                    f"http://127.0.0.1:{httpd.server_port}/api/analyze",
+                    data=body,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with patch.object(server, "analyze_folder", side_effect=RuntimeError("synthetic failure")):
+                    with self.assertRaises(HTTPError) as failed:
+                        urllib.request.urlopen(request)
+                self.assertEqual(failed.exception.code, 500)
+                response = json.loads(failed.exception.read())
+                self.assertEqual(response["code"], "analysis_failed")
+                self.assertEqual(server.STATE["progress"]["status"], "failed")
+            finally:
+                httpd.shutdown()
+                httpd.server_close()
+                worker.join(timeout=2)
+                server.STATE.clear()
+                server.STATE.update(initial_state)
+
     def test_corrupt_settings_do_not_block_startup(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict("os.environ", {"LOCALAPPDATA": folder}), patch.object(
             server, "LEGACY_LAST_FOLDER", Path(folder) / "missing.txt"
@@ -165,16 +306,32 @@ class AnalyzerTests(unittest.TestCase):
 
     def test_windows_launchers_use_crlf(self):
         project = Path(__file__).parent
-        for name in ("run.bat", "启动镀膜分析.bat"):
+        for name in ("run.bat", "启动镀膜分析.bat", "构建安装包.bat"):
             content = (project / name).read_bytes()
             self.assertIn(b"\r\n", content)
             self.assertNotIn(b"\n", content.replace(b"\r\n", b""))
 
     def test_public_site_is_local_only_and_links_to_releases(self):
-        site = Path(__file__).with_name("site") / "index.html"
-        html = site.read_text(encoding="utf-8")
+        project = Path(__file__).parent
+        html = (project / "site" / "index.html").read_text(encoding="utf-8")
+        readme = (project / "README.md").read_text(encoding="utf-8")
+        release_notes = (project / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+        installer_url = (
+            "https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/"
+            "Log-Analysis-Setup-v0.1.0-beta.3-x64.exe"
+        )
+        checksum_url = (
+            "https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/"
+            "SHA256SUMS.txt"
+        )
         self.assertIn("数据只在本机处理", html)
-        self.assertIn("github.com/Reyppp/log-analysis/releases", html)
+        self.assertIn(installer_url, html)
+        self.assertIn(checksum_url, html)
+        self.assertIn("https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.3", html)
+        self.assertIn(installer_url, readme)
+        self.assertIn("Get-FileHash -Algorithm SHA256", readme)
+        for content in (html, readme, release_notes):
+            self.assertIn("单层详情图表或原始截图可能不显示", content)
         self.assertNotIn("https://fonts.", html)
         self.assertNotIn("analytics", html.lower())
 
@@ -192,6 +349,15 @@ class AnalyzerTests(unittest.TestCase):
     def test_missing_folder(self):
         with self.assertRaises(AnalysisError):
             analyze_folder(Path(tempfile.gettempdir()) / "does-not-exist-coating-log")
+
+    def test_html_uses_progress_and_threshold_fast_path(self):
+        html = Path(__file__).with_name("index.html").read_text(encoding="utf-8")
+        self.assertIn('id="analysis-progress"', html)
+        self.assertIn("api('/api/progress')", html)
+        self.assertIn("api('/api/anomalies?threshold='", html)
+        self.assertIn("$('threshold').onchange=refreshAnomalies", html)
+        self.assertIn("if(d.changed)resetAnalysisView()", html)
+        self.assertIn("window.pywebview.api.choose_folder()", html)
 
     @unittest.skipUnless(GOLDEN_FOLDER and GOLDEN_FOLDER.is_dir(), "黄金样本目录不可用")
     def test_golden_run(self):
