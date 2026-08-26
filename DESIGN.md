@@ -32,7 +32,7 @@ Use `Segoe UI`, `Microsoft YaHei`, then system sans-serif. Numeric log paths and
 
 - Desktop application: fixed top operation bar, left module navigation, sticky filter row, one active analysis module in the main work area.
 - The primary desktop viewport is 1440×900 with a 960×640 minimum. Below 900px, module navigation becomes horizontal.
-- Public site: generous editorial sections with a split hero, a single synthetic workbench illustration, capability rows, privacy section and installation steps.
+- Public site: generous editorial sections with a split hero, a synthetic workbench illustration, and a full-width five-module interactive capability guide. On desktop the guide uses a client view beside its explanation panel; at ≤1050px the explanation moves below and focuses/reveals after a hotspot is selected. Privacy and installation sections follow.
 - Use spacing in a 4px-derived rhythm. Dense controls may use 8–12px gaps; sections use 24–40px; public-site sections use 64px or more.
 
 ## Components
@@ -59,6 +59,7 @@ Visible columns use Chinese field names from shared metadata. Unknown fields mus
 - Provide semantic dialog roles for chart focus and lock background scrolling while open.
 - Respect `prefers-reduced-motion`; motion is short and communicates state rather than decoration.
 - Maintain readable contrast and never communicate anomaly severity with color alone.
+- The public guide renders synthetic chart data on `Canvas`; module navigation uses `tablist`/`tab` semantics with roving keyboard focus, arrow keys and Home/End, while metric switches expose `aria-pressed`. Hotspots are keyboard-focusable; on narrow layouts, selecting one focuses and reveals the explanation panel.
 
 ## Content rules
 
