@@ -25,8 +25,8 @@
       <span><strong>Log Analysis</strong><small>镀膜日志分析工作台</small></span>
     </a>
     <nav aria-label="主要导航">
-      <a href="#capabilities">能力</a>
-      <a href="#privacy">隐私</a>
+      <a href="#capabilities">功能说明</a>
+      <a href="#privacy">本地处理</a>
       <a href="#install">安装</a>
       <a href="https://github.com/Reyppp/log-analysis">源码</a>
     </nav>
@@ -35,8 +35,8 @@
   <main id="main">
     <section class="hero" id="top">
       <div class="hero-copy">
-        <h1>把一炉数百层，变成一张可追踪的工艺地图。</h1>
-        <p>选择炉次文件夹，Log Analysis 自动关联理论、光学和设备日志，标出需要复核的层。原始数据只读，分析全程留在本机。</p>
+        <h1>单炉次镀膜日志分析</h1>
+        <p>自动关联逐层理论、光学与设备数据，定位需复核层。全程本地运行，原始日志只读。</p>
         <div class="hero-actions">
           <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/Log-Analysis-Setup-v0.1.0-beta.3-x64.exe">下载 v0.1.0-beta.3</a>
           <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/SHA256SUMS.txt">SHA-256 校验文件 <span aria-hidden="true">→</span></a>
@@ -55,7 +55,7 @@
         <div class="demo-body">
           <div class="demo-nav"><b>总览</b><span>理论趋势</span><span>光学</span><span>设备</span><span>异常关联</span></div>
           <div class="demo-main">
-            <div class="demo-heading"><div><small>示意炉次</small><strong>180 层工艺概览</strong></div><span>H 96 / L 84</span></div>
+            <div class="demo-heading"><div><small>合成炉次</small><strong>180 层分析概览</strong></div><span>H 96 / L 84</span></div>
             <svg class="demo-chart" viewBox="0 0 760 285" role="img" aria-label="合成的逐层光学偏移曲线">
               <g class="grid-lines" stroke="#dfe7ed" stroke-width="1">
                 <path d="M46 38H736M46 92H736M46 146H736M46 200H736M46 254H736"/>
@@ -72,19 +72,99 @@
       </figure>
     </section>
 
-    <section class="capabilities" id="capabilities">
-      <div class="section-intro"><h2>从文件完整性，到单层曲线。</h2><p>五个模块沿同一层号组织数据，减少在多个 CSV、截图和事件日志之间来回核对。</p></div>
-      <div class="capability-list">
-        <article><span>总览</span><h3>先确认这一炉是否值得信任</h3><p>层数、计划与实际时间、完成状态、文件完整性和重点关注层集中呈现。</p></article>
-        <article><span>理论趋势</span><h3>看清材料、监控方式和设定变化</h3><p>物理厚度、理论速率以及理论与实际时间按层对齐。</p></article>
-        <article><span>光学</span><h3>从全炉偏移进入单层细节</h3><p>Meas、动态 Calc、理论 End T、残差、理论曲线和原始截图互相对应。</p></article>
-        <article><span>设备</span><h3>让工艺波动回到材料分组中比较</h3><p>功率、电流、电压、真空、温度、转速和气体以带点平滑曲线显示。</p></article>
-        <article><span>异常关联</span><h3>把统计提示变成复核入口</h3><p>稳健 Z 分数、相邻层突变和 Spearman 相关用于寻找线索，不输出合格判定。</p></article>
+    <section class="client-guide" id="capabilities">
+      <div class="guide-intro">
+        <h2>客户端功能说明</h2>
+        <p>切换模块并选择高亮区域，查看功能、适用场景、操作方法和结果说明。页面使用合成数据。</p>
+      </div>
+
+      <div class="guide-layout">
+        <section class="guide-client" aria-label="Log Analysis 合成数据客户端演示">
+          <div class="guide-windowbar">
+            <span class="demo-logo" aria-hidden="true">LA</span>
+            <strong>Log Analysis</strong>
+            <span class="guide-path">D:\Process\Demo-Lot</span>
+            <span class="guide-ready">分析完成</span>
+          </div>
+          <div class="guide-app">
+            <nav class="guide-module-nav" role="tablist" aria-label="分析模块" aria-orientation="vertical">
+              <button class="active" id="guide-tab-overview" type="button" role="tab" aria-selected="true" aria-controls="guide-panel-overview" data-guide-module="overview">总览</button>
+              <button id="guide-tab-theory" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-theory" data-guide-module="theory">理论趋势</button>
+              <button id="guide-tab-optical" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-optical" data-guide-module="optical">光学</button>
+              <button id="guide-tab-device" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-device" data-guide-module="device">设备</button>
+              <button id="guide-tab-anomaly" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-anomaly" data-guide-module="anomaly">异常关联</button>
+            </nav>
+
+            <div class="guide-screen-wrap">
+              <div class="guide-filterbar" aria-label="演示筛选条件"><span>层号 1-180</span><span>材料 H / L</span><span>监控方式 OMS / Timer</span></div>
+
+              <section class="guide-screen active" id="guide-panel-overview" role="tabpanel" aria-labelledby="guide-tab-overview" data-guide-panel="overview">
+                <div class="guide-page-title"><div><h3>总览</h3><p>完成状态、累计时间与优先复核入口</p></div><span>合成数据</span></div>
+                <div class="guide-kpis">
+                  <div><span>炉号</span><strong>DEMO-180</strong></div>
+                  <div><span>层数</span><strong>180</strong><small>H 96 / L 84</small></div>
+                  <div><span>完成状态</span><strong>已完成</strong></div>
+                  <div><span>累计镀膜</span><strong>20 h 18 m</strong><small>理论 19 h 52 m</small></div>
+                  <button type="button" data-guide-hotspot="overview-review"><span>重点复核层</span><strong>2</strong><small>选择查看说明</small></button>
+                  <button type="button" data-guide-hotspot="overview-quality"><span>数据质量</span><strong>0 错误</strong><small>3 项提示</small></button>
+                </div>
+                <figure class="guide-chart"><figcaption><strong>理论终点偏移概览</strong><span>Meas - 理论 End T（%）</span></figcaption><canvas id="guideOverviewCanvas" aria-label="合成理论终点偏移曲线"></canvas><small>层号</small></figure>
+              </section>
+
+              <section class="guide-screen" id="guide-panel-theory" role="tabpanel" aria-labelledby="guide-tab-theory" data-guide-panel="theory" hidden>
+                <div class="guide-page-title"><div><h3>理论趋势</h3><p>逐层对比理论设定与实际结果</p></div><span>合成数据</span></div>
+                <button class="material-band" type="button" data-guide-hotspot="theory-band"><span>材料与监控方式</span><i class="band-h">H / OMS</i><i class="band-l">L / Timer</i><i class="band-h">H / OMS</i><i class="band-l">L / OMS</i></button>
+                <div class="guide-chart-grid">
+                  <figure class="guide-chart"><figcaption><strong>物理厚度</strong><span>nm</span></figcaption><canvas id="guideThicknessCanvas" aria-label="合成物理厚度趋势"></canvas><small>层号</small></figure>
+                  <figure class="guide-chart hotspot" role="button" tabindex="0" data-guide-hotspot="theory-rate"><figcaption><strong>理论与实际速率</strong><span>nm/s</span></figcaption><canvas id="guideRateCanvas" aria-label="合成理论与实际速率趋势"></canvas><small>层号</small></figure>
+                </div>
+                <div class="guide-time-summary"><span>理论时间 <strong>71,520 s</strong></span><span>实际时间 <strong>73,080 s</strong></span><span>偏差 <strong>+1,560 s</strong></span></div>
+              </section>
+
+              <section class="guide-screen" id="guide-panel-optical" role="tabpanel" aria-labelledby="guide-tab-optical" data-guide-panel="optical" hidden>
+                <div class="guide-page-title"><div><h3>光学分析</h3><p>终点偏差、拟合残差与单层曲线</p></div><span>合成数据</span></div>
+                <figure class="guide-chart hotspot optical-endpoint" role="button" tabindex="0" data-guide-hotspot="optical-endpoint"><figcaption><strong>终点透过率趋势</strong><span>Meas / 动态 Calc / 理论 End T</span></figcaption><canvas id="guideOpticalCanvas" aria-label="合成终点透过率趋势"></canvas><small>层号</small></figure>
+                <section class="guide-layer-detail hotspot" role="button" tabindex="0" data-guide-hotspot="optical-detail">
+                  <header><div><strong>单层详情</strong><span id="guideLayerLabel">第 96 层</span></div><div><button id="guideLayerPrev" type="button">前一层</button><button id="guideLayerNext" type="button">后一层</button></div></header>
+                  <div class="guide-detail-grid"><figure class="guide-chart"><figcaption><strong>实测与动态计算</strong><span>透过率（%）</span></figcaption><canvas id="guideLayerCanvas" aria-label="合成单层实测与动态计算曲线"></canvas><small>采样时间（s）</small></figure><div class="guide-image-placeholder"><span>原始截图</span><strong id="guideImageLayer">Layer 96</strong><small>合成图像占位</small></div></div>
+                </section>
+              </section>
+
+              <section class="guide-screen" id="guide-panel-device" role="tabpanel" aria-labelledby="guide-tab-device" data-guide-panel="device" hidden>
+                <div class="guide-page-title"><div><h3>设备分析</h3><p>按材料比较逐层均值与波动</p></div><span>合成数据</span></div>
+                <div class="guide-metric-select" aria-label="设备指标"><strong>指标</strong><button class="active" type="button" aria-pressed="true" data-device-metric="power">功率</button><button type="button" aria-pressed="false" data-device-metric="temperature">温度</button><button type="button" aria-pressed="false" data-device-metric="vacuum">真空</button></div>
+                <figure class="guide-chart hotspot device-chart" role="button" tabindex="0" data-guide-hotspot="device-metric"><figcaption><strong id="guideDeviceTitle">功率均值逐层趋势</strong><span id="guideDeviceUnit">日志原始值</span></figcaption><canvas id="guideDeviceCanvas" aria-label="合成设备趋势"></canvas><small>层号</small></figure>
+                <div class="guide-stats hotspot" role="button" tabindex="0" data-guide-hotspot="device-groups"><strong>H/L 分组统计</strong><table><thead><tr><th>材料</th><th>样本数</th><th>均值</th><th>范围</th></tr></thead><tbody id="guideDeviceStats"></tbody></table></div>
+              </section>
+
+              <section class="guide-screen" id="guide-panel-anomaly" role="tabpanel" aria-labelledby="guide-tab-anomaly" data-guide-panel="anomaly" hidden>
+                <div class="guide-page-title"><div><h3>异常与关联</h3><p>统计偏离用于确定复核顺序</p></div><span>合成数据；相关不代表因果</span></div>
+                <div class="guide-metric-select" aria-label="复核指标"><strong>复核指标</strong><button class="active" type="button" aria-pressed="true" data-anomaly-metric="residual">终点拟合残差</button><button type="button" aria-pressed="false" data-anomaly-metric="rate">实际速率偏差</button></div>
+                <div class="guide-chart-grid">
+                  <figure class="guide-chart hotspot" role="button" tabindex="0" data-guide-hotspot="anomaly-metric"><figcaption><strong id="guideAnomalyTitle">终点拟合残差</strong><span>复核提示以红圈标记</span></figcaption><canvas id="guideAnomalyCanvas" aria-label="合成复核指标趋势"></canvas><small>层号</small></figure>
+                  <figure class="guide-chart hotspot" role="button" tabindex="0" data-guide-hotspot="anomaly-correlation"><figcaption><strong>Spearman 相关</strong><span>|ρ| 最高的指标关系</span></figcaption><canvas id="guideCorrelationCanvas" aria-label="合成 Spearman 相关条形图"></canvas><small>绝对相关系数</small></figure>
+                </div>
+                <div class="guide-review-list"><span>第 47 层 <strong>重点复核</strong></span><span>第 132 层 <strong>关注</strong></span></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <aside class="guide-explanation" id="guideExplanation" tabindex="-1" aria-live="polite">
+          <span id="guideDetailModule">总览</span>
+          <h3 id="guideDetailTitle">重点复核层</h3>
+          <dl>
+            <div><dt>功能</dt><dd id="guideDetailFunction">汇总达到重点复核阈值的层。</dd></div>
+            <div><dt>适用场景</dt><dd id="guideDetailWhen">完成分析后确定优先检查顺序。</dd></div>
+            <div><dt>操作</dt><dd id="guideDetailHow">进入总览，选择重点复核层查看对应记录。</dd></div>
+            <div><dt>说明</dt><dd id="guideDetailNote">统计偏离仅提供复核线索，不代表质量结论。</dd></div>
+          </dl>
+        </aside>
       </div>
     </section>
 
     <section class="privacy" id="privacy">
-      <div><h2>日志留在设备旁，不去云端绕一圈。</h2><p>Log Analysis 只监听本机回环地址，读取你主动选择的炉次目录。没有账号、数据库、分析追踪或上传接口。</p></div>
+      <div><h2>本地处理，不上传生产数据</h2><p>Log Analysis 仅访问用户选择的炉次目录。分析、图表与导出均在本机完成，无账号、数据库、分析追踪或上传接口。</p></div>
       <ul>
         <li><strong>只读</strong><span>不改写原始日志内容和时间戳</span></li>
         <li><strong>本地</strong><span>分析、图表和导出都在当前电脑完成</span></li>
@@ -93,7 +173,7 @@
     </section>
 
     <section class="install" id="install">
-      <div class="install-copy"><h2>安装测试版</h2><p>当前版本是面向验证的未签名 Windows 测试版。部分安装环境的单层详情图表或原始截图可能不显示，逐层汇总和其他全炉分析页面不受影响。</p></div>
+      <div class="install-copy"><h2>安装 Windows 测试版</h2><p>当前版本未进行代码签名，适用于功能验证。已知问题：部分环境下单层详情图表或原始截图可能不显示，其他全炉分析页面不受影响。</p></div>
       <div class="install-steps">
         <ol>
           <li><span>1</span><div><strong>关闭旧版本</strong><p>升级前先退出所有正在运行的 Log Analysis 窗口。</p></div></li>
@@ -116,5 +196,6 @@
     <div><strong>Log Analysis</strong><span>本地镀膜日志分析工作台</span></div>
     <div><a href="https://github.com/Reyppp/log-analysis/issues">问题反馈</a><a href="https://github.com/Reyppp/log-analysis/blob/main/LICENSE">MIT License</a><span>© 2026 Reyppp</span></div>
   </footer>
+  <script src="demo.js"></script>
 </body>
 </html>
