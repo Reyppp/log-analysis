@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Log Analysis">
+  <rect width="256" height="256" rx="52" fill="#075e91"/>
+  <path d="M39 185h178" stroke="#9fd7ef" stroke-width="10" stroke-linecap="round"/>
+  <path d="M54 157V70h22v66h42v21H54Zm69 0 35-87h23l36 87h-25l-7-19h-33l-7 19h-22Zm36-39h19l-9-26-10 26Z" fill="#fff"/>
+</svg>

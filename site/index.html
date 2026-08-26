@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Log Analysis 是面向镀膜工艺工程师的 Windows 本地日志分析工作台。数据只在本机处理。">
+  <meta name="theme-color" content="#f1f4f7">
+  <title>Log Analysis · 本地镀膜日志分析</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!--
+  THESIS: Log Analysis turns a furnace folder into a traceable layer map; it refuses the generic software hero made from claim cards.
+  OWN-WORLD: restrained blue-gray instrument surfaces, dense measurement lines, square controls, and one signal-blue accent inherited from the desktop workbench.
+  STORY: an engineer sees the local-only mechanism, examines the five linked analysis views, understands beta installation risk, and downloads from GitHub.
+  FIRST VIEWPORT: a plainspoken offer and download action share the viewport with a full workbench demonstration using clearly labeled synthetic data.
+  FORM: established-world extension, pinned plan; a process-control report translated into a public download surface.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+  -->
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="site-header">
+    <a class="site-brand" href="#top" aria-label="Log Analysis 首页">
+      <span class="brand-mark" aria-hidden="true">LA</span>
+      <span><strong>Log Analysis</strong><small>镀膜日志分析工作台</small></span>
+    </a>
+    <nav aria-label="主要导航">
+      <a href="#capabilities">能力</a>
+      <a href="#privacy">隐私</a>
+      <a href="#install">安装</a>
+      <a href="https://github.com/Reyppp/log-analysis">源码</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <h1>把一炉数百层，变成一张可追踪的工艺地图。</h1>
+        <p>选择炉次文件夹，Log Analysis 自动关联理论、光学和设备日志，标出需要复核的层。原始数据只读，分析全程留在本机。</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases">下载 Windows 测试版</a>
+          <a class="text-action" href="https://github.com/Reyppp/log-analysis">查看源码 <span aria-hidden="true">→</span></a>
+        </div>
+        <dl class="hero-facts">
+          <div><dt>运行方式</dt><dd>Windows 10/11 x64</dd></div>
+          <div><dt>数据边界</dt><dd>本地只读，不上传</dd></div>
+          <div><dt>当前版本</dt><dd>v0.1.0-beta.1</dd></div>
+        </dl>
+      </div>
+
+      <figure class="workbench-demo" aria-labelledby="demo-caption">
+        <figcaption id="demo-caption">工作台示意 · 合成数据</figcaption>
+        <div class="demo-bar"><span class="demo-logo">LA</span><strong>Log Analysis</strong><span class="demo-path">D:\Process\Demo-Lot</span><span class="demo-status">分析完成</span></div>
+        <div class="demo-body">
+          <div class="demo-nav"><b>总览</b><span>理论趋势</span><span>光学</span><span>设备</span><span>异常关联</span></div>
+          <div class="demo-main">
+            <div class="demo-heading"><div><small>示意炉次</small><strong>180 层工艺概览</strong></div><span>H 96 / L 84</span></div>
+            <svg class="demo-chart" viewBox="0 0 760 285" role="img" aria-label="合成的逐层光学偏移曲线">
+              <g class="grid-lines" stroke="#dfe7ed" stroke-width="1">
+                <path d="M46 38H736M46 92H736M46 146H736M46 200H736M46 254H736"/>
+                <path d="M46 38V254M184 38V254M322 38V254M460 38V254M598 38V254M736 38V254"/>
+              </g>
+              <path class="signal-line signal-h" pathLength="1" d="M46 154C75 133 93 168 121 146S171 119 199 143 247 172 276 144 320 109 351 138 402 177 431 148 477 115 509 141 555 169 585 136 635 106 668 134 711 164 736 126"/>
+              <path class="signal-line signal-l" pathLength="1" d="M46 185C79 197 101 169 133 181S181 208 214 186 258 156 291 176 338 206 370 181 416 153 449 172 495 198 527 177 575 148 608 169 657 200 689 174 719 157 736 164"/>
+              <g fill="#b42318"><circle cx="351" cy="138" r="5"/><circle cx="608" cy="169" r="5"/></g>
+              <g fill="#5b6d7c" font-size="12"><text x="40" y="275">1</text><text x="690" y="275">层号 180</text><text x="53" y="55">Meas − 理论 End T</text></g>
+            </svg>
+            <div class="demo-readout"><span><i class="key-h"></i>H 材料</span><span><i class="key-l"></i>L 材料</span><b>重点复核 2 层</b></div>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <section class="capabilities" id="capabilities">
+      <div class="section-intro"><h2>从文件完整性，到单层曲线。</h2><p>五个模块沿同一层号组织数据，减少在多个 CSV、截图和事件日志之间来回核对。</p></div>
+      <div class="capability-list">
+        <article><span>总览</span><h3>先确认这一炉是否值得信任</h3><p>层数、计划与实际时间、完成状态、文件完整性和重点关注层集中呈现。</p></article>
+        <article><span>理论趋势</span><h3>看清材料、监控方式和设定变化</h3><p>物理厚度、理论速率以及理论与实际时间按层对齐。</p></article>
+        <article><span>光学</span><h3>从全炉偏移进入单层细节</h3><p>Meas、动态 Calc、理论 End T、残差、理论曲线和原始截图互相对应。</p></article>
+        <article><span>设备</span><h3>让工艺波动回到材料分组中比较</h3><p>功率、电流、电压、真空、温度、转速和气体以带点平滑曲线显示。</p></article>
+        <article><span>异常关联</span><h3>把统计提示变成复核入口</h3><p>稳健 Z 分数、相邻层突变和 Spearman 相关用于寻找线索，不输出合格判定。</p></article>
+      </div>
+    </section>
+
+    <section class="privacy" id="privacy">
+      <div><h2>日志留在设备旁，不去云端绕一圈。</h2><p>Log Analysis 只监听本机回环地址，读取你主动选择的炉次目录。没有账号、数据库、分析追踪或上传接口。</p></div>
+      <ul>
+        <li><strong>只读</strong><span>不改写原始日志内容和时间戳</span></li>
+        <li><strong>本地</strong><span>分析、图表和导出都在当前电脑完成</span></li>
+        <li><strong>可核验</strong><span>公开源码，安装包附 SHA-256 校验值</span></li>
+      </ul>
+    </section>
+
+    <section class="install" id="install">
+      <div class="install-copy"><h2>安装测试版</h2><p>当前版本是面向验证的未签名 Windows 测试版。正式稳定版发布前会重新评估可信代码签名。</p></div>
+      <div class="install-steps">
+        <ol>
+          <li><span>1</span><div><strong>从 GitHub Releases 下载</strong><p>文件名以 <code>Log-Analysis-Setup</code> 开头。</p></div></li>
+          <li><span>2</span><div><strong>核对 SHA-256</strong><p>在 PowerShell 中运行：<code>Get-FileHash .\Log-Analysis-Setup-*.exe</code></p></div></li>
+          <li><span>3</span><div><strong>确认测试版提示</strong><p>未签名程序可能触发 Windows SmartScreen；组织管理的电脑也可能禁止运行。</p></div></li>
+        </ol>
+        <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases">前往下载与校验</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div><strong>Log Analysis</strong><span>本地镀膜日志分析工作台</span></div>
+    <div><a href="https://github.com/Reyppp/log-analysis/issues">问题反馈</a><a href="https://github.com/Reyppp/log-analysis/blob/main/LICENSE">MIT License</a><span>© 2026 Reyppp</span></div>
+  </footer>
+</body>
+</html>

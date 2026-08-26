@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "name": "Log Analysis",
+  "direction": "calm precision industrial workbench",
+  "platform": "Windows desktop and static product website",
+  "colors": {
+    "background": "#f1f4f7",
+    "surface": "#ffffff",
+    "surface_soft": "#e8eef2",
+    "border": "#ccd7df",
+    "text": "#17242e",
+    "text_muted": "#586b79",
+    "primary": "#075e91",
+    "primary_deep": "#063b5a",
+    "highlight": "#9fd7ef",
+    "success": "#267451",
+    "danger": "#b42318"
+  },
+  "typography": {
+    "ui": ["Segoe UI", "Microsoft YaHei", "Arial", "sans-serif"],
+    "mono": ["Consolas", "monospace"]
+  },
+  "radius": {
+    "control": "8px",
+    "surface": "14px"
+  },
+  "principles": [
+    "engineering meaning before decoration",
+    "one active analysis module at a time",
+    "complete Chinese labels and reliable units",
+    "status is never conveyed by color alone",
+    "local-only data processing",
+    "synthetic or anonymized public imagery"
+  ],
+  "forbidden": [
+    "online fonts",
+    "decorative gradients",
+    "nested card stacks",
+    "unlabeled internal field names",
+    "pass-fail claims from statistical anomalies"
+  ]
+}

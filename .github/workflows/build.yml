@@ -1,0 +1,44 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "*.py"
+      - "index.html"
+      - "requirements*.txt"
+      - "Log Analysis.spec"
+      - "assets/**"
+      - ".github/workflows/build.yml"
+  pull_request:
+    paths:
+      - "*.py"
+      - "*.spec"
+      - "index.html"
+      - "requirements*.txt"
+      - "assets/**"
+      - "installer/**"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements-build.txt
+      - run: python -m unittest -v
+      - run: python tools/create_icon.py
+      - run: pyinstaller --noconfirm --clean "Log Analysis.spec"
+      - name: Smoke-test packaged service modules
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath 'dist\Log Analysis\Log Analysis.exe' -ArgumentList '--smoke-test' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Packaged smoke test failed with exit code $($process.ExitCode)" }

@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+      - name: Test
+        run: python -m unittest -v
+      - name: Verify tag matches application version
+        shell: pwsh
+        run: |
+          $appVersion = python -c "from version import APP_VERSION; print(APP_VERSION)"
+          if ('v' + $appVersion) -ne '${{ github.ref_name }}') { throw "Tag and version.py do not match" }
+      - name: Build application
+        shell: pwsh
+        run: |
+          python tools/create_icon.py
+          pyinstaller --noconfirm --clean "Log Analysis.spec"
+          $process = Start-Process -FilePath 'dist\Log Analysis\Log Analysis.exe' -ArgumentList '--smoke-test' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Packaged smoke test failed with exit code $($process.ExitCode)" }
+      - name: Install Inno Setup 7.1.0
+        run: winget install --id JRSoftware.InnoSetup.7 --version 7.1.0 -e -s winget --accept-package-agreements --accept-source-agreements --silent
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $iscc = Get-Item "$env:LOCALAPPDATA\Programs\Inno Setup 7\ISCC.exe", 'C:\Program Files\Inno Setup 7\ISCC.exe' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $iscc) { throw 'Inno Setup compiler was not found' }
+          & $iscc "/DMyAppVersion=$version" installer\LogAnalysis.iss
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem release\Log-Analysis-Setup-*.exe | Select-Object -First 1
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer.FullName).Hash.ToLowerInvariant()
+          "$hash  $($installer.Name)" | Set-Content -Encoding ascii release\SHA256SUMS.txt
+      - name: Create draft prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installer = Get-ChildItem release\Log-Analysis-Setup-*.exe | Select-Object -First 1
+          gh release create '${{ github.ref_name }}' $installer.FullName release\SHA256SUMS.txt --draft --prerelease --title 'Log Analysis ${{ github.ref_name }}' --notes-file RELEASE_NOTES.md
