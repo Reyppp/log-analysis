@@ -143,17 +143,18 @@ class AnalyzerTests(unittest.TestCase):
 
     def test_desktop_uses_native_explorer_folder_dialog(self):
         with tempfile.TemporaryDirectory() as folder:
+            selected = str(Path(folder).resolve())
             calls = []
             api = desktop.DesktopApi()
             api.window = SimpleNamespace(
-                create_file_dialog=lambda dialog, **kwargs: calls.append((dialog, kwargs)) or (folder,)
+                create_file_dialog=lambda dialog, **kwargs: calls.append((dialog, kwargs)) or (selected,)
             )
-            with patch.object(server, "saved_path", return_value=folder), patch.object(server, "save_path"), patch.dict(
-                server.STATE, {"path": folder, "result": object()}, clear=True
+            with patch.object(server, "saved_path", return_value=selected), patch.object(server, "save_path"), patch.dict(
+                server.STATE, {"path": selected, "result": object()}, clear=True
             ):
                 result = api.choose_folder()
             self.assertEqual(calls[0][0], desktop.webview.FileDialog.FOLDER)
-            self.assertEqual(calls[0][1]["directory"], folder)
+            self.assertEqual(calls[0][1]["directory"], selected)
             self.assertFalse(result["cancelled"])
             self.assertFalse(result["changed"])
 
