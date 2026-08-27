@@ -145,10 +145,10 @@ class AnalyzerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             selected = str(Path(folder).resolve())
             calls = []
-            api = desktop.DesktopApi()
-            api.window = SimpleNamespace(
+            window = SimpleNamespace(
                 create_file_dialog=lambda dialog, **kwargs: calls.append((dialog, kwargs)) or (selected,)
             )
+            api = desktop.DesktopApi(window)
             with patch.object(server, "saved_path", return_value=selected), patch.object(server, "save_path"), patch.dict(
                 server.STATE, {"path": selected, "result": object()}, clear=True
             ):
@@ -157,6 +157,34 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(calls[0][1]["directory"], selected)
             self.assertFalse(result["cancelled"])
             self.assertFalse(result["changed"])
+
+    def test_desktop_api_exposes_only_callable_methods(self):
+        window = SimpleNamespace()
+        api = desktop.DesktopApi(window)
+        public = {name: getattr(api, name) for name in dir(api) if not name.startswith("_")}
+        self.assertEqual(
+            set(public),
+            {"choose_folder", "get_version", "open_releases", "save_export"},
+        )
+        self.assertTrue(all(callable(value) for value in public.values()))
+        self.assertFalse(hasattr(api, "window"))
+        self.assertIs(api._window, window)
+
+    def test_desktop_api_version_release_and_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "layer_summary.csv"
+            window = SimpleNamespace(create_file_dialog=lambda *_args, **_kwargs: (str(output),))
+            api = desktop.DesktopApi(window)
+            self.assertEqual(api.get_version()["version"], desktop.APP_VERSION)
+            with patch.object(desktop.webbrowser, "open", return_value=True) as open_browser:
+                self.assertTrue(api.open_releases())
+                open_browser.assert_called_once_with(desktop.RELEASES_URL)
+            result = SimpleNamespace(layer_summary=pd.DataFrame({"layer": [1]}))
+            with patch.dict(server.STATE, {"result": result}, clear=True):
+                saved = api.save_export("summary")
+            self.assertTrue(saved["ok"])
+            self.assertEqual(saved["path"], str(output))
+            self.assertTrue(output.read_bytes().startswith(b"\xef\xbb\xbf"))
 
     def test_progress_callback_reaches_completion(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -195,7 +223,7 @@ class AnalyzerTests(unittest.TestCase):
                 body = response.read().decode("utf-8")
             self.assertIn('"service": "coating-analyzer"', body)
             self.assertIn('"app_name": "Log Analysis"', body)
-            self.assertIn('"app_version": "0.1.0-beta.3"', body)
+            self.assertIn(f'"app_version": "{desktop.APP_VERSION}"', body)
         finally:
             httpd.shutdown()
             httpd.server_close()
@@ -317,18 +345,19 @@ class AnalyzerTests(unittest.TestCase):
         html = (project / "site" / "index.html").read_text(encoding="utf-8")
         readme = (project / "README.md").read_text(encoding="utf-8")
         release_notes = (project / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+        version = desktop.APP_VERSION
         installer_url = (
-            "https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/"
-            "Log-Analysis-Setup-v0.1.0-beta.3-x64.exe"
+            f"https://github.com/Reyppp/log-analysis/releases/download/v{version}/"
+            f"Log-Analysis-Setup-v{version}-x64.exe"
         )
         checksum_url = (
-            "https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.3/"
+            f"https://github.com/Reyppp/log-analysis/releases/download/v{version}/"
             "SHA256SUMS.txt"
         )
         self.assertIn("数据只在本机处理", html)
         self.assertIn(installer_url, html)
         self.assertIn(checksum_url, html)
-        self.assertIn("https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.3", html)
+        self.assertIn(f"https://github.com/Reyppp/log-analysis/releases/tag/v{version}", html)
         self.assertIn(installer_url, readme)
         self.assertIn("Get-FileHash -Algorithm SHA256", readme)
         for content in (html, readme, release_notes):
