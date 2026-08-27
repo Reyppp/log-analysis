@@ -1,5 +1,5 @@
 APP_NAME = "Log Analysis"
-APP_VERSION = "0.1.0-beta.3"
+APP_VERSION = "0.1.0-beta.4"
 BUILD_CHANNEL = "beta"
 REPOSITORY_URL = "https://github.com/Reyppp/log-analysis"
 RELEASES_URL = f"{REPOSITORY_URL}/releases"

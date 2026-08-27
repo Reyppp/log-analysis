@@ -57,8 +57,8 @@ def acquire_single_instance() -> int | None:
 
 
 class DesktopApi:
-    def __init__(self) -> None:
-        self.window = None
+    def __init__(self, window) -> None:
+        self._window = window
 
     def get_version(self) -> dict[str, str]:
         return {"name": APP_NAME, "version": APP_VERSION, "channel": BUILD_CHANNEL}
@@ -72,7 +72,7 @@ class DesktopApi:
         previous = server.saved_path()
         directory = previous if Path(previous).is_dir() else str(Path.home())
         try:
-            selected = self.window.create_file_dialog(webview.FileDialog.FOLDER, directory=directory)
+            selected = self._window.create_file_dialog(webview.FileDialog.FOLDER, directory=directory)
             path, cancelled, changed = server.apply_folder_selection(selected[0] if selected else "")
             return {"path": path, "cancelled": cancelled, "changed": changed}
         except Exception as exc:
@@ -90,7 +90,7 @@ class DesktopApi:
         if result is None:
             return {"ok": False, "error": "请先完成炉次分析。"}
         name = "layer_summary.csv" if kind == "summary" else "anomalies.csv"
-        selected = self.window.create_file_dialog(
+        selected = self._window.create_file_dialog(
             webview.FileDialog.SAVE,
             directory=str(Path.home() / "Downloads"),
             save_filename=name,
@@ -147,23 +147,23 @@ def main() -> None:
         worker = threading.Thread(target=httpd.serve_forever, name="log-analysis-http", daemon=True)
         worker.start()
         LOGGER.info("local service ready port=%s", httpd.server_port)
-        api = DesktopApi()
         url = f"http://127.0.0.1:{httpd.server_port}/?token={quote(token)}"
-        api.window = webview.create_window(
+        window = webview.create_window(
             APP_NAME,
             url,
-            js_api=api,
             width=1440,
             height=900,
             min_size=(960, 640),
             text_select=True,
         )
+        api = DesktopApi(window)
+        window.expose(api.get_version, api.open_releases, api.choose_folder, api.save_export)
 
         def page_loaded() -> None:
             ready.set()
             LOGGER.info("window loaded")
 
-        api.window.events.loaded += page_loaded
+        window.events.loaded += page_loaded
 
         def watch_startup() -> None:
             if not ready.wait(15) and not stopped.is_set():
