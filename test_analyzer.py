@@ -894,9 +894,13 @@ class AnalyzerTests(unittest.TestCase):
         self.assertIn("Get-FileHash -Algorithm SHA256", readme)
         for scope in ("combined", "monitor", "machine"):
             self.assertIn(f'data-site-scope="{scope}"', html)
-        self.assertIn("监控log五大模块", html)
+        self.assertIn("三种分析范围，同一工作台", html)
+        self.assertIn("guide-sourcebar", html)
+        self.assertIn("guide-module-nav", html)
         self.assertIn("异常复核", html)
-        self.assertIn("8,000", html)
+        self.assertIn("实际采样点", html + demo_js)
+        self.assertNotIn("8,000", html + demo_js)
+        self.assertNotIn("高密度设备趋势", html + demo_js)
         self.assertNotIn("Spearman", html + demo_js)
         for content in (html, readme, release_notes):
             self.assertIn("单层详情图表或原始截图可能不显示", content)
