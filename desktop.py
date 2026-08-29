@@ -84,12 +84,15 @@ class DesktopApi:
 
     def save_export(self, kind: str, threshold: float = 3.5) -> dict[str, object]:
         import server
-        from analyzer import csv_bytes, detect_anomalies
+        from analyzer import csv_bytes
 
         result = server.STATE.get("result")
         if result is None:
             return {"ok": False, "error": "请先完成炉次分析。"}
-        name = "layer_summary.csv" if kind == "summary" else "anomalies.csv"
+        try:
+            frame, name = server.export_frame(result, kind, float(threshold))
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
         selected = self._window.create_file_dialog(
             webview.FileDialog.SAVE,
             directory=str(Path.home() / "Downloads"),
@@ -99,7 +102,6 @@ class DesktopApi:
         if not selected:
             return {"ok": True, "cancelled": True}
         path = Path(selected[0] if isinstance(selected, (tuple, list)) else selected)
-        frame = result.layer_summary if kind == "summary" else detect_anomalies(result.layer_summary, float(threshold))
         path.write_bytes(csv_bytes(frame))
         return {"ok": True, "cancelled": False, "path": str(path)}
 

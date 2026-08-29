@@ -1,17 +1,27 @@
 # Log Analysis
 
-面向镀膜工艺工程师的 Windows 本地日志分析工作台。选择一个炉次文件夹后，应用会只读校验日志、生成逐层汇总，并提供理论、光学、设备、异常与关联图表。
+面向镀膜工艺工程师的 Windows 本地日志分析工作台。选择一个日志文件夹后，应用会只读识别工控log与监控log，并提供双源关联、逐层汇总、理论、光学、设备和异常复核图表。
 
-> English: Log Analysis is a local, read-only Windows workbench for single-run coating log validation, layer summaries, optical/device trends, anomaly hints, and CSV exports.
+> English: Log Analysis is a local, read-only Windows workbench for control-system and per-layer coating log validation, alignment, optical/device trends, anomaly hints, and CSV exports.
 
 ## 数据边界
 
 - 原始日志只读，不修改内容或时间戳。
 - 分析只在当前电脑完成，不提供上传接口、账号或云端数据库。
-- 根目录名称符合 `YYYY-MM-DD.csv` 的文件自动排除。
-- 异常与相关性是统计复核线索，不代表工艺或产品合格判定。
+- 根目录名称符合 `YYYY-MM-DD.csv` 且表头匹配的文件识别为工控log；逐层文件族识别为监控log。
+- 支持综合、工控log和监控log三种分析范围，并按实际存在的数据源显示入口。
+- 异常复核是统计线索，不代表工艺或产品合格判定。
 
 真实炉次日志不属于本仓库。测试和公开页面只能使用合成或脱敏数据。
+
+## 核心功能
+
+- **综合分析**：自动关联工控log与监控log，校正时间偏移，并按层数或时间对照双源设备数据。
+- **监控log分析**：提供总览、理论趋势、光学、设备和异常复核五个模块，支持单层曲线、理论曲线、原始截图及前后切层。
+- **工控log分析**：连续查看功率、电流、电压、真空、温度、转速和气体数据，并按镀膜区段及材料筛选工作时间。
+- **统一筛选**：层范围、材料、监控方式和区段同步作用于可计算的汇总、图表和表格。
+- **设备趋势**：综合时间图在整张图内最多保留 8,000 个真实边界点和极值点；缩放与平移不重新请求数据。
+- **数据来源**：综合模式下转速以工控log为准，同时保留监控log参考值用于核验。
 
 ## 安装
 
@@ -23,11 +33,11 @@
 ### 下载与校验
 
 1. 升级前先关闭所有正在运行的 Log Analysis 窗口。
-2. 下载 [Log Analysis v0.1.0-beta.4 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.4/Log-Analysis-Setup-v0.1.0-beta.4-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.4/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.4)。
+2. 下载 [Log Analysis v0.1.0-beta.5 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.5/Log-Analysis-Setup-v0.1.0-beta.5-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.5/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.5)。
 3. 在下载目录打开 PowerShell，运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.4-x64.exe
+Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.5-x64.exe
 Get-Content .\SHA256SUMS.txt
 ```
 
@@ -35,7 +45,7 @@ Get-Content .\SHA256SUMS.txt
 
 ### 安装与首次使用
 
-1. 双击 `Log-Analysis-Setup-v0.1.0-beta.4-x64.exe`。
+1. 双击 `Log-Analysis-Setup-v0.1.0-beta.5-x64.exe`。
 2. 按安装向导继续；程序默认安装到当前用户目录，不需要管理员权限，桌面快捷方式可选。
 3. 当前版本是未签名测试版。若 SmartScreen 显示“Windows 已保护你的电脑”，请先确认 SHA-256 已匹配，再选择“更多信息”，核对文件名后选择“仍要运行”。如果组织安全策略禁止运行，请联系管理员，不要关闭系统安全功能。
 4. 安装完成后，从开始菜单打开 **Log Analysis**。

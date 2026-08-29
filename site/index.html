@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Log Analysis 是面向镀膜工艺工程师的 Windows 本地日志分析工作台。数据只在本机处理。">
+  <meta name="description" content="Log Analysis 在 Windows 本地只读识别工控log与监控log，提供双源关联、逐层光学与设备分析。">
   <meta name="theme-color" content="#f1f4f7">
   <title>Log Analysis · 本地镀膜日志分析</title>
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
@@ -13,7 +13,7 @@
   <!--
   THESIS: Log Analysis turns a furnace folder into a traceable layer map; it refuses the generic software hero made from claim cards.
   OWN-WORLD: restrained blue-gray instrument surfaces, dense measurement lines, square controls, and one signal-blue accent inherited from the desktop workbench.
-  STORY: an engineer sees the local-only mechanism, examines the five linked analysis views, understands beta installation risk, and downloads from GitHub.
+  STORY: an engineer sees the local-only mechanism, understands the three analysis scopes, examines the monitor-log modules, and downloads from GitHub.
   FIRST VIEWPORT: a plainspoken offer and download action share the viewport with a full workbench demonstration using clearly labeled synthetic data.
   FORM: established-world extension, pinned plan; a process-control report translated into a public download surface.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
@@ -25,6 +25,7 @@
       <span><strong>Log Analysis</strong><small>镀膜日志分析工作台</small></span>
     </a>
     <nav aria-label="主要导航">
+      <a href="#modes">分析范围</a>
       <a href="#capabilities">功能说明</a>
       <a href="#privacy">本地处理</a>
       <a href="#install">安装</a>
@@ -36,16 +37,16 @@
     <section class="hero" id="top">
       <div class="hero-copy">
         <h1>单炉次镀膜日志分析</h1>
-        <p>自动关联逐层理论、光学与设备数据，定位需复核层。全程本地运行，原始日志只读。</p>
+        <p>自动关联工控log与监控log，汇总逐层理论、光学与设备数据，定位需复核层。全程本地运行，原始日志只读。</p>
         <div class="hero-actions">
-          <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.4/Log-Analysis-Setup-v0.1.0-beta.4-x64.exe">下载 v0.1.0-beta.4</a>
-          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.4/SHA256SUMS.txt">SHA-256 校验文件 <span aria-hidden="true">→</span></a>
-          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.4">版本说明 <span aria-hidden="true">→</span></a>
+          <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.5/Log-Analysis-Setup-v0.1.0-beta.5-x64.exe">下载 v0.1.0-beta.5</a>
+          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.5/SHA256SUMS.txt">SHA-256 校验文件 <span aria-hidden="true">→</span></a>
+          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.5">版本说明 <span aria-hidden="true">→</span></a>
         </div>
         <dl class="hero-facts">
           <div><dt>运行方式</dt><dd>Windows 10/11 x64</dd></div>
           <div><dt>数据边界</dt><dd>本地只读，不上传</dd></div>
-          <div><dt>当前版本</dt><dd>v0.1.0-beta.4</dd></div>
+          <div><dt>当前版本</dt><dd>v0.1.0-beta.5</dd></div>
         </dl>
       </div>
 
@@ -53,9 +54,10 @@
         <figcaption id="demo-caption">工作台示意 · 合成数据</figcaption>
         <div class="demo-bar"><span class="demo-logo">LA</span><strong>Log Analysis</strong><span class="demo-path">D:\Process\Demo-Lot</span><span class="demo-status">分析完成</span></div>
         <div class="demo-body">
-          <div class="demo-nav"><b>总览</b><span>理论趋势</span><span>光学</span><span>设备</span><span>异常关联</span></div>
+          <div class="demo-nav"><small>综合</small><b>总览</b><span>设备</span></div>
           <div class="demo-main">
-            <div class="demo-heading"><div><small>合成炉次</small><strong>180 层分析概览</strong></div><span>H 96 / L 84</span></div>
+            <div class="demo-sources"><b>综合</b><span>监控log</span><span>工控log</span></div>
+            <div class="demo-heading"><div><small>合成数据</small><strong>双日志设备对照</strong></div><span>已关联 · 180 层</span></div>
             <svg class="demo-chart" viewBox="0 0 760 285" role="img" aria-label="合成的逐层光学偏移曲线">
               <g class="grid-lines" stroke="#dfe7ed" stroke-width="1">
                 <path d="M46 38H736M46 92H736M46 146H736M46 200H736M46 254H736"/>
@@ -63,19 +65,43 @@
               </g>
               <path class="signal-line signal-h" pathLength="1" d="M46 154C75 133 93 168 121 146S171 119 199 143 247 172 276 144 320 109 351 138 402 177 431 148 477 115 509 141 555 169 585 136 635 106 668 134 711 164 736 126"/>
               <path class="signal-line signal-l" pathLength="1" d="M46 185C79 197 101 169 133 181S181 208 214 186 258 156 291 176 338 206 370 181 416 153 449 172 495 198 527 177 575 148 608 169 657 200 689 174 719 157 736 164"/>
-              <g fill="#b42318"><circle cx="351" cy="138" r="5"/><circle cx="608" cy="169" r="5"/></g>
-              <g fill="#5b6d7c" font-size="12"><text x="40" y="275">1</text><text x="690" y="275">层号 180</text><text x="53" y="55">Meas − 理论 End T</text></g>
+              <path class="signal-line signal-monitor" pathLength="1" d="M46 159C79 141 101 171 133 156S181 129 214 149 258 178 291 153 338 124 370 148 416 169 449 151 495 131 527 149 575 163 608 143 657 124 689 146 719 157 736 140"/>
+              <g fill="#5b6d7c" font-size="12"><text x="40" y="275">1层</text><text x="690" y="275">180层</text><text x="53" y="55">功率设备对照</text></g>
             </svg>
-            <div class="demo-readout"><span><i class="key-h"></i>H 材料</span><span><i class="key-l"></i>L 材料</span><b>重点复核 2 层</b></div>
+            <div class="demo-readout"><span><i class="key-h"></i>工控log</span><span><i class="key-monitor"></i>监控log</span><b>时间偏移已校正</b></div>
           </div>
         </div>
       </figure>
     </section>
 
+    <section class="scope-section" id="modes">
+      <div class="scope-intro">
+        <h2>一个文件夹，三种分析范围</h2>
+        <p>程序自动识别可用日志。选择综合、监控log或工控log，界面只显示当前数据源支持的模块。</p>
+      </div>
+      <div class="scope-workbench">
+        <div class="scope-tabs" role="tablist" aria-label="分析范围">
+          <button class="active" id="scope-tab-combined" type="button" role="tab" aria-selected="true" aria-controls="scope-panel" data-site-scope="combined"><strong>综合</strong><span>双源关联与设备对照</span></button>
+          <button id="scope-tab-monitor" type="button" role="tab" aria-selected="false" aria-controls="scope-panel" data-site-scope="monitor"><strong>监控log</strong><span>逐层理论、光学与复核</span></button>
+          <button id="scope-tab-machine" type="button" role="tab" aria-selected="false" aria-controls="scope-panel" data-site-scope="machine"><strong>工控log</strong><span>最多 8,000 点连续设备趋势</span></button>
+        </div>
+        <section class="scope-panel" id="scope-panel" role="tabpanel" aria-labelledby="scope-tab-combined" tabindex="0">
+          <div class="scope-panel-head"><div><h3 id="scopeTitle">综合分析</h3><p id="scopeSummary">自动校正双源时间偏移，按层数或时间对照设备状态。</p></div><span id="scopeStatus">已关联</span></div>
+          <div class="scope-timeline" aria-hidden="true"><span></span><i></i><span></span><i></i><span></span><i></i><span></span></div>
+          <dl class="scope-facts">
+            <div><dt>数据</dt><dd id="scopeData">工控log + 监控log</dd></div>
+            <div><dt>模块</dt><dd id="scopeModules">总览、设备</dd></div>
+            <div><dt>重点功能</dt><dd id="scopeFeature">双源时间对齐、层数/时间横坐标、转速来源核验</dd></div>
+            <div><dt>筛选</dt><dd id="scopeFilters">层范围、材料、监控方式、区段</dd></div>
+          </dl>
+        </section>
+      </div>
+    </section>
+
     <section class="client-guide" id="capabilities">
       <div class="guide-intro">
-        <h2>客户端功能说明</h2>
-        <p>切换模块并选择高亮区域，查看功能、适用场景、操作方法和结果说明。页面使用合成数据。</p>
+        <h2>监控log五大模块</h2>
+        <p>切换模块并选择高亮区域，查看逐层分析的功能、适用场景、操作方法和结果说明。页面使用合成数据。</p>
       </div>
 
       <div class="guide-layout">
@@ -83,6 +109,7 @@
           <div class="guide-windowbar">
             <span class="demo-logo" aria-hidden="true">LA</span>
             <strong>Log Analysis</strong>
+            <span class="guide-context">监控log</span>
             <span class="guide-path">D:\Process\Demo-Lot</span>
             <span class="guide-ready">分析完成</span>
           </div>
@@ -92,7 +119,7 @@
               <button id="guide-tab-theory" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-theory" data-guide-module="theory">理论趋势</button>
               <button id="guide-tab-optical" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-optical" data-guide-module="optical">光学</button>
               <button id="guide-tab-device" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-device" data-guide-module="device">设备</button>
-              <button id="guide-tab-anomaly" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-anomaly" data-guide-module="anomaly">异常关联</button>
+              <button id="guide-tab-anomaly" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-anomaly" data-guide-module="anomaly">异常复核</button>
             </nav>
 
             <div class="guide-screen-wrap">
@@ -125,7 +152,7 @@
                 <div class="guide-page-title"><div><h3>光学分析</h3><p>终点偏差、拟合残差与单层曲线</p></div><span>合成数据</span></div>
                 <figure class="guide-chart hotspot optical-endpoint" role="button" tabindex="0" data-guide-hotspot="optical-endpoint"><figcaption><strong>终点透过率趋势</strong><span>Meas / 动态 Calc / 理论 End T</span></figcaption><canvas id="guideOpticalCanvas" aria-label="合成终点透过率趋势"></canvas><small>层号</small></figure>
                 <section class="guide-layer-detail hotspot" role="button" tabindex="0" data-guide-hotspot="optical-detail">
-                  <header><div><strong>单层详情</strong><span id="guideLayerLabel">第 96 层</span></div><div><button id="guideLayerPrev" type="button">前一层</button><button id="guideLayerNext" type="button">后一层</button></div></header>
+                  <header><div><strong>单层详情</strong><span id="guideLayerLabel">96层</span></div><div><button id="guideLayerPrev" type="button">前一层</button><button id="guideLayerNext" type="button">后一层</button></div></header>
                   <div class="guide-detail-grid"><figure class="guide-chart"><figcaption><strong>实测与动态计算</strong><span>透过率（%）</span></figcaption><canvas id="guideLayerCanvas" aria-label="合成单层实测与动态计算曲线"></canvas><small>采样时间（s）</small></figure><div class="guide-image-placeholder"><span>原始截图</span><strong id="guideImageLayer">Layer 96</strong><small>合成图像占位</small></div></div>
                 </section>
               </section>
@@ -138,13 +165,13 @@
               </section>
 
               <section class="guide-screen" id="guide-panel-anomaly" role="tabpanel" aria-labelledby="guide-tab-anomaly" data-guide-panel="anomaly" hidden>
-                <div class="guide-page-title"><div><h3>异常与关联</h3><p>统计偏离用于确定复核顺序</p></div><span>合成数据；相关不代表因果</span></div>
+                <div class="guide-page-title"><div><h3>异常复核</h3><p>统计偏离用于确定复核顺序</p></div><span>合成数据</span></div>
                 <div class="guide-metric-select" aria-label="复核指标"><strong>复核指标</strong><button class="active" type="button" aria-pressed="true" data-anomaly-metric="residual">终点拟合残差</button><button type="button" aria-pressed="false" data-anomaly-metric="rate">实际速率偏差</button></div>
                 <div class="guide-chart-grid">
                   <figure class="guide-chart hotspot" role="button" tabindex="0" data-guide-hotspot="anomaly-metric"><figcaption><strong id="guideAnomalyTitle">终点拟合残差</strong><span>复核提示以红圈标记</span></figcaption><canvas id="guideAnomalyCanvas" aria-label="合成复核指标趋势"></canvas><small>层号</small></figure>
-                  <figure class="guide-chart hotspot" role="button" tabindex="0" data-guide-hotspot="anomaly-correlation"><figcaption><strong>Spearman 相关</strong><span>|ρ| 最高的指标关系</span></figcaption><canvas id="guideCorrelationCanvas" aria-label="合成 Spearman 相关条形图"></canvas><small>绝对相关系数</small></figure>
+                  <div class="guide-stats hotspot anomaly-ranking" role="button" tabindex="0" data-guide-hotspot="anomaly-ranking"><strong>异常排名</strong><table><thead><tr><th>层号</th><th>指标</th><th>等级</th></tr></thead><tbody><tr><td>47</td><td>终点拟合残差</td><td>重点复核</td></tr><tr><td>132</td><td>实际速率偏差</td><td>关注</td></tr></tbody></table></div>
                 </div>
-                <div class="guide-review-list"><span>第 47 层 <strong>重点复核</strong></span><span>第 132 层 <strong>关注</strong></span></div>
+                <div class="guide-review-list"><span>47层 <strong>重点复核</strong></span><span>132层 <strong>关注</strong></span></div>
               </section>
             </div>
           </div>
@@ -164,7 +191,7 @@
     </section>
 
     <section class="privacy" id="privacy">
-      <div><h2>本地处理，不上传生产数据</h2><p>Log Analysis 仅访问用户选择的炉次目录。分析、图表与导出均在本机完成，无账号、数据库、分析追踪或上传接口。</p></div>
+      <div><h2>本地处理，不上传生产数据</h2><p>Log Analysis 仅访问用户选择的工控log与监控log目录。分析、图表与导出均在本机完成，无账号、数据库、分析追踪或上传接口。</p></div>
       <ul>
         <li><strong>只读</strong><span>不改写原始日志内容和时间戳</span></li>
         <li><strong>本地</strong><span>分析、图表和导出都在当前电脑完成</span></li>
@@ -173,20 +200,20 @@
     </section>
 
     <section class="install" id="install">
-      <div class="install-copy"><h2>安装 Windows 测试版</h2><p>v0.1.0-beta.4 修复关闭后首次重新启动可能无响应的问题。当前版本未进行代码签名。已知问题：部分环境下单层详情图表或原始截图可能不显示。</p></div>
+      <div class="install-copy"><h2>安装 Windows 测试版</h2><p>v0.1.0-beta.5 新增工控log、双源关联与高密度设备趋势。当前版本未进行代码签名。已知问题：部分环境下单层详情图表或原始截图可能不显示。</p></div>
       <div class="install-steps">
         <ol>
           <li><span>1</span><div><strong>关闭旧版本</strong><p>升级前先退出所有正在运行的 Log Analysis 窗口。</p></div></li>
-          <li><span>2</span><div><strong>下载两个文件</strong><p>同时下载 <code>Log-Analysis-Setup-v0.1.0-beta.4-x64.exe</code> 和 <code>SHA256SUMS.txt</code>。</p></div></li>
-          <li><span>3</span><div><strong>核对 SHA-256</strong><p>在下载目录运行 <code>Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.4-x64.exe</code>，与校验文件比较。</p></div></li>
+          <li><span>2</span><div><strong>下载两个文件</strong><p>同时下载 <code>Log-Analysis-Setup-v0.1.0-beta.5-x64.exe</code> 和 <code>SHA256SUMS.txt</code>。</p></div></li>
+          <li><span>3</span><div><strong>核对 SHA-256</strong><p>在下载目录运行 <code>Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.5-x64.exe</code>，与校验文件比较。</p></div></li>
           <li><span>4</span><div><strong>运行当前用户安装</strong><p>双击安装程序；不需要管理员权限，桌面快捷方式可选。</p></div></li>
           <li><span>5</span><div><strong>处理测试版提示</strong><p>哈希匹配后，如 SmartScreen 警告可选择“更多信息”并核对文件名；组织策略阻止时请联系管理员。</p></div></li>
           <li><span>6</span><div><strong>选择炉次并分析</strong><p>从开始菜单打开应用，点击“选择文件夹”，再点击“开始分析”。</p></div></li>
         </ol>
         <div class="hero-actions">
-          <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.4/Log-Analysis-Setup-v0.1.0-beta.4-x64.exe">直接下载安装程序</a>
-          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.4/SHA256SUMS.txt">下载校验文件 <span aria-hidden="true">→</span></a>
-          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.4">查看版本说明 <span aria-hidden="true">→</span></a>
+          <a class="primary-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.5/Log-Analysis-Setup-v0.1.0-beta.5-x64.exe">直接下载安装程序</a>
+          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.5/SHA256SUMS.txt">下载校验文件 <span aria-hidden="true">→</span></a>
+          <a class="text-action" href="https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.5">查看版本说明 <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </section>
