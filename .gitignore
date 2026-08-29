@@ -25,5 +25,8 @@ release/
 settings.json
 SHA256SUMS.txt
 context-summary.md
+.env
+.env.*
+sk-*
 !site/assets/*.png
 !site/assets/*.jpg

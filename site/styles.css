@@ -56,9 +56,13 @@ h1 { max-width: 12ch; margin: 0; font-size: clamp(3.3rem, 6vw, 6rem); line-heigh
 .demo-status { color: var(--green); font-size: 11px; font-weight: 700; }
 .demo-body { min-height: 410px; display: grid; grid-template-columns: 132px minmax(0, 1fr); }
 .demo-nav { display: grid; align-content: start; gap: 4px; padding: 16px 10px; border-right: 1px solid var(--line); background: var(--soft); color: var(--muted); font-size: 11px; }
+.demo-nav small { padding: 2px 10px 8px; color: #718290; font-size: 9px; font-weight: 700; }
 .demo-nav span, .demo-nav b { padding: 8px 10px; font-weight: 600; }
 .demo-nav b { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--blue); }
 .demo-main { min-width: 0; padding: 24px; }
+.demo-sources { display: flex; gap: 4px; margin-bottom: 20px; padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: #f7f9fb; font-size: 10px; }
+.demo-sources span, .demo-sources b { min-width: 72px; padding: 5px 9px; border-radius: 5px; text-align: center; }
+.demo-sources b { background: var(--blue); color: #fff; }
 .demo-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
 .demo-heading div { display: grid; }
 .demo-heading small { color: var(--muted); font-size: 10px; }
@@ -68,13 +72,42 @@ h1 { max-width: 12ch; margin: 0; font-size: clamp(3.3rem, 6vw, 6rem); line-heigh
 .signal-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-signal 1.3s cubic-bezier(.16, 1, .3, 1) .2s forwards; }
 .signal-h { stroke: var(--blue); }
 .signal-l { stroke: #c97829; }
+.signal-monitor { stroke: var(--blue); stroke-dasharray: .02 .025; }
 .demo-readout { display: flex; gap: 18px; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .demo-readout span { display: flex; align-items: center; gap: 6px; }
 .demo-readout i { width: 18px; height: 3px; display: inline-block; }
 .key-h { background: var(--blue); }
 .key-l { background: #c97829; }
+.key-monitor { height: 0 !important; border-top: 3px dotted var(--blue); }
 .demo-readout b { margin-left: auto; color: var(--red); }
 @keyframes draw-signal { to { stroke-dashoffset: 0; } }
+
+.scope-section { padding: clamp(88px, 9vw, 138px) clamp(20px, 7vw, 120px); border-bottom: 1px solid var(--line); background: var(--bg); }
+.scope-intro { max-width: 1220px; margin: 0 auto 42px; }
+.scope-intro h2 { max-width: 15ch; margin: 0; font-size: clamp(2.4rem, 4.5vw, 4.5rem); line-height: 1.04; letter-spacing: -.035em; text-wrap: balance; }
+.scope-intro p { max-width: 46rem; margin: 22px 0 0; color: var(--muted); font-size: 18px; }
+.scope-workbench { display: grid; grid-template-columns: minmax(230px, .48fr) minmax(0, 1.52fr); max-width: 1220px; margin: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.scope-tabs { display: grid; align-content: start; border-right: 1px solid var(--line); }
+.scope-tabs button { display: grid; gap: 3px; min-height: 94px; padding: 20px 22px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.scope-tabs button:last-child { border-bottom: 0; }
+.scope-tabs button:hover { background: rgba(255, 255, 255, .55); }
+.scope-tabs button.active { background: var(--surface); box-shadow: inset 3px 0 var(--blue); }
+.scope-tabs button strong { color: var(--blue-dark); font-size: 17px; }
+.scope-tabs button span { color: var(--muted); font-size: 12px; }
+.scope-panel { min-width: 0; min-height: 282px; padding: clamp(26px, 4vw, 52px); background: var(--surface); }
+.scope-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.scope-panel-head h3 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.1; letter-spacing: -.025em; }
+.scope-panel-head p { max-width: 52ch; margin: 10px 0 0; color: var(--muted); }
+.scope-panel-head > span { padding: 6px 10px; border: 1px solid #9bc4b0; border-radius: 6px; color: var(--green); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.scope-timeline { display: grid; grid-template-columns: 8px 1fr 8px 1fr 8px 1fr 8px; align-items: center; margin: 34px 0 28px; }
+.scope-timeline span { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+.scope-timeline i { height: 2px; background: #9fc4d9; }
+.scope-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--line); }
+.scope-facts div { padding: 16px 18px 16px 0; border-bottom: 1px solid var(--line); }
+.scope-facts div:nth-child(odd) { border-right: 1px solid var(--line); }
+.scope-facts div:nth-child(even) { padding-left: 18px; }
+.scope-facts dt { color: var(--muted); font-size: 11px; font-weight: 700; }
+.scope-facts dd { margin: 5px 0 0; font-size: 14px; }
 
 .client-guide { padding: clamp(88px, 9vw, 138px) clamp(20px, 4vw, 70px); background: var(--surface); }
 .guide-intro { max-width: 1220px; margin: 0 auto 46px; }
@@ -84,6 +117,7 @@ h1 { max-width: 12ch; margin: 0; font-size: clamp(3.3rem, 6vw, 6rem); line-heigh
 .guide-client { min-width: 0; overflow: hidden; border: 1px solid #b9c7d2; border-radius: var(--radius); background: #f7f9fb; box-shadow: 0 24px 58px rgba(18, 43, 57, .14); }
 .guide-windowbar { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fff; }
 .guide-windowbar strong { white-space: nowrap; }
+.guide-context { padding: 4px 7px; border: 1px solid #9dbfd2; border-radius: 5px; color: var(--blue); font-size: 10px; font-weight: 700; white-space: nowrap; }
 .guide-path { flex: 1; min-width: 0; margin-left: 12px; padding: 7px 10px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font: 11px/1.2 Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .guide-ready { color: var(--green); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .guide-app { display: grid; grid-template-columns: 142px minmax(0, 1fr); min-height: 610px; }
@@ -150,6 +184,7 @@ h1 { max-width: 12ch; margin: 0; font-size: clamp(3.3rem, 6vw, 6rem); line-heigh
 .guide-stats table { width: 100%; margin-top: 7px; border-collapse: collapse; font-size: 10px; }
 .guide-stats th, .guide-stats td { padding: 5px 7px; border-bottom: 1px solid #e7edf1; text-align: right; }
 .guide-stats th:first-child, .guide-stats td:first-child { text-align: left; }
+.anomaly-ranking { margin-top: 12px; cursor: pointer; }
 .guide-review-list { display: flex; gap: 8px; margin-top: 10px; }
 .guide-review-list span { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--muted); font-size: 10px; }
 .guide-review-list strong { color: var(--red); }
@@ -189,6 +224,7 @@ footer strong { color: var(--text); }
   .guide-layout { grid-template-columns: 1fr; }
   .guide-explanation { position: static; min-height: 0; }
   .guide-explanation dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 24px; }
+  .scope-workbench { grid-template-columns: 210px minmax(0, 1fr); }
 }
 
 @media (max-width: 900px) {
@@ -213,9 +249,11 @@ footer strong { color: var(--text); }
   .demo-nav { padding-inline: 6px; }
   .demo-nav span, .demo-nav b { overflow: hidden; padding-inline: 7px; text-overflow: ellipsis; white-space: nowrap; }
   .demo-main { padding: 14px; }
+  .demo-sources { overflow-x: auto; }
   .demo-readout { gap: 9px; }
   .demo-readout b { display: none; }
   .guide-windowbar strong, .guide-ready { display: none; }
+  .guide-context { margin-left: 0; }
   .guide-path { margin-left: 0; }
   .guide-screen { padding: 12px; }
   .guide-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -227,6 +265,16 @@ footer strong { color: var(--text); }
   .guide-metric-select { align-items: stretch; flex-wrap: wrap; }
   .guide-review-list { flex-direction: column; }
   .privacy li { grid-template-columns: 76px 1fr; }
+  .scope-workbench { display: block; }
+  .scope-tabs { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .scope-tabs button { flex: 0 0 150px; min-height: 78px; padding: 14px; border-right: 1px solid var(--line); border-bottom: 0; }
+  .scope-tabs button.active { box-shadow: inset 0 -3px var(--blue); }
+  .scope-panel { min-height: 0; padding: 24px 18px; }
+  .scope-panel-head { display: grid; }
+  .scope-panel-head > span { justify-self: start; }
+  .scope-facts { grid-template-columns: 1fr; }
+  .scope-facts div:nth-child(odd) { border-right: 0; }
+  .scope-facts div:nth-child(even) { padding-left: 0; }
   footer, footer div { align-items: flex-start; flex-direction: column; }
 }
 

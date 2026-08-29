@@ -30,9 +30,9 @@ Use `Segoe UI`, `Microsoft YaHei`, then system sans-serif. Numeric log paths and
 
 ## Layout
 
-- Desktop application: fixed top operation bar, left module navigation, sticky filter row, one active analysis module in the main work area.
+- Desktop application: fixed top operation bar, source-context switch, contextual left navigation, sticky filter row, and one active analysis module in the main work area. The source switch offers only the detected modes in the order 综合, 监控log, 工控log. Combined and work-control contexts each expose two modules; segmentation remains an internal calculation rather than a navigation destination.
 - The primary desktop viewport is 1440×900 with a 960×640 minimum. Below 900px, module navigation becomes horizontal.
-- Public site: generous editorial sections with a split hero, a synthetic workbench illustration, and a full-width five-module interactive capability guide. On desktop the guide uses a client view beside its explanation panel; at ≤1050px the explanation moves below and focuses/reveals after a hotspot is selected. Privacy and installation sections follow.
+- Public site: generous editorial sections with a split hero, an interactive three-scope explanation, and a full-width five-module monitor-log guide. On desktop the guide uses a client view beside its explanation panel; at ≤1050px the explanation moves below and focuses/reveals after a hotspot is selected. Privacy and installation sections follow.
 - Use spacing in a 4px-derived rhythm. Dense controls may use 8–12px gaps; sections use 24–40px; public-site sections use 64px or more.
 
 ## Components
@@ -43,11 +43,15 @@ Primary actions use the primary blue fill, white text, a minimum 44px hit target
 
 ### Navigation and filters
 
-The active module is unmistakable through label, foreground and surface treatment. Material and monitoring-method filters behave as segmented switches. Switching modules preserves filters, selected layer and chosen metrics.
+The active source context and module are unmistakable through label, foreground and surface treatment. Material and monitoring-method filters behave as segmented switches. Switching contexts preserves each context's filters, selected layer, activity session and chosen metrics.
 
 ### Charts
 
-Every chart has a complete Chinese title, X/Y axis names, reliable units, legend and formatted hover content. H/L series are named “H 材料” and “L 材料”. Device trends use restrained spline lines with visible data points. Each chart offers viewport focus; `Esc` exits and focus returns to the triggering control.
+Every chart has a complete Chinese title, X/Y axis names, reliable units, legend and formatted hover content. Regular chart panels use one shared title position, legend row and plot margins. Device pages align the metric rail and chart to one enlarged, equal-height row; any H/L comparison table sits below them and spans their combined width. H/L series are always ordered as “H 材料” then “L 材料”. Device layer trends use restrained spline lines with visible data points. Combined device comparison supports layer and time axes. Work-control trends and combined time trends use an internal 8,000-point budget, preserving real boundaries and extrema without presenting sampling diagnostics in the chart. Viewport gestures never reload data. A single-material filter hides every interval in which that material is inactive. Do not connect lines across coating layers, filtered intervals or axis breaks.
+
+Work-control and monitor device charts share one ordered blue-orange-purple-green palette. Material colors remain stable after filtering, gas channels use the same palette order, and unified hover details place each trace marker and name before its values. Work-control gas metrics use separate O₂ and Ar entries in the same metric rail pattern as monitor logs.
+
+Time charts use a Plotly top secondary x-axis for coating layers. It overlays and matches the bottom time axis, sits below the first-row legend and above the plotting area, has no axis title, and uses the compact `X层` form while table cells remain numeric. Tick density recalculates after zoom, resize and viewport focus without requesting or redrawing data. The two horizontal axes pan and zoom together; vertical boundary lines may remain inside the plot, but layer text must not overlap curves, titles, legends or the mode bar. Each chart offers viewport focus; `Esc` exits and focus returns to the triggering control.
 
 ### Tables and status
 

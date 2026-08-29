@@ -5,6 +5,7 @@
   const moduleTabs = [...document.querySelectorAll("[data-guide-module]")];
   const modulePanels = [...document.querySelectorAll("[data-guide-panel]")];
   const hotspots = [...document.querySelectorAll("[data-guide-hotspot]")];
+  const scopeTabs = [...document.querySelectorAll("[data-site-scope]")];
   const moduleFirstHotspot = {
     overview: "overview-review",
     theory: "theory-band",
@@ -22,8 +23,14 @@
     "optical-detail": ["光学", "单层详情", "关联单层 Meas/Calc 曲线、理论曲线和原始截图。", "复核特定层的终点偏差或曲线形态时使用。", "使用前一层和后一层切换，并核对同层截图。", "截图仅辅助核验，不参与统计计算。"],
     "device-metric": ["设备", "设备指标", "按层显示功率、温度或真空的均值与波动。", "排查光学偏差对应的设备状态变化时使用。", "选择指标后，比较 H/L 材料曲线及变化范围。", "真空等未声明单位的字段按日志原始值显示。"],
     "device-groups": ["设备", "H/L 分组统计", "分别汇总 H/L 材料的样本数、均值和范围。", "避免材料设定差异造成误判时使用。", "先选择设备指标，再对比分组统计和逐层趋势。", "分组统计描述当前炉次，不构成设备规格限值。"],
-    "anomaly-metric": ["异常关联", "复核指标", "显示稳健 Z 分数识别的相对偏离层。", "需要形成统计复核清单时使用。", "切换指标，查看红圈层并对照异常排名。", "样本不足、MAD 为零或字段恒定时不会检测。"],
-    "anomaly-correlation": ["异常关联", "相关关系", "列出光学偏差与工艺参数的 Spearman 相关。", "筛选可能共同变化的参数时使用。", "优先查看绝对相关系数较高且样本数充分的关系。", "相关不代表因果，必须结合单层和设备记录复核。"]
+    "anomaly-metric": ["异常复核", "复核指标", "显示稳健 Z 分数识别的相对偏离层。", "需要形成统计复核清单时使用。", "切换指标，查看红圈层并对照异常排名。", "样本不足、MAD 为零或字段恒定时不会检测。"],
+    "anomaly-ranking": ["异常复核", "异常排名", "按等级和偏离程度排列需复核层。", "需要确定单层核验顺序时使用。", "选择排名记录，再进入对应层的光学或设备详情。", "排名只反映统计偏离程度，不代表质量判定。"]
+  };
+
+  const scopeContent = {
+    combined: ["综合分析", "自动校正双源时间偏移，按层数或时间对照设备状态。", "已关联", "工控log + 监控log", "总览、设备", "双源时间对齐、层数/时间横坐标、转速来源核验", "层范围、材料、监控方式、区段"],
+    monitor: ["监控log分析", "按镀膜层汇总理论、光学、设备统计与复核提示。", "逐层分析", "理论文件、MeasPower、MachineStatus、CoatingLog", "总览、理论趋势、光学、设备、异常复核", "单层曲线、理论曲线、原始截图、H/L 分组统计", "层范围、材料、监控方式"],
+    machine: ["工控log分析", "合并连续日期日志，查看设备在真实时间轴上的变化。", "连续数据", "YYYY-MM-DD.csv", "总览、设备", "工作区段识别、8,000 点趋势、O₂/Ar 独立通道", "材料、区段；关联后增加层范围与监控方式"]
   };
 
   let activeModule = "overview";
@@ -31,6 +38,31 @@
   let selectedLayer = 96;
   let deviceMetric = "power";
   let anomalyMetric = "residual";
+
+  function setScope(name, focusTab = false) {
+    const content = scopeContent[name];
+    if (!content) return;
+    scopeTabs.forEach(tab => {
+      const active = tab.dataset.siteScope === name;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+      if (active && focusTab) tab.focus();
+    });
+    $("scope-panel").setAttribute("aria-labelledby", `scope-tab-${name}`);
+    ["scopeTitle", "scopeSummary", "scopeStatus", "scopeData", "scopeModules", "scopeFeature", "scopeFilters"].forEach((id, index) => { $(id).textContent = content[index]; });
+  }
+
+  scopeTabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => setScope(tab.dataset.siteScope));
+    tab.addEventListener("keydown", event => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const previous = event.key === "ArrowLeft" || event.key === "ArrowUp";
+      const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? scopeTabs.length - 1 : (index + (previous ? scopeTabs.length - 1 : 1)) % scopeTabs.length;
+      setScope(scopeTabs[nextIndex].dataset.siteScope, true);
+    });
+  });
 
   function showDetail(key, reveal = false) {
     const detail = details[key];
@@ -160,29 +192,6 @@
     });
   }
 
-  function barChart(id, entries) {
-    const canvas = $(id);
-    const target = canvas && frame(canvas);
-    if (!target) return;
-    const { context, width, height } = target;
-    context.clearRect(0, 0, width, height);
-    context.font = '9px "Segoe UI", sans-serif';
-    const left = 82;
-    const max = Math.max(...entries.map(entry => entry.value));
-    entries.forEach((entry, index) => {
-      const y = 18 + index * ((height - 34) / entries.length);
-      const barHeight = Math.min(18, (height - 44) / entries.length - 5);
-      context.fillStyle = "#586b79";
-      context.fillText(entry.label, 4, y + barHeight - 3);
-      context.fillStyle = "#dce6ec";
-      context.fillRect(left, y, width - left - 14, barHeight);
-      context.fillStyle = "#075e91";
-      context.fillRect(left, y, (width - left - 14) * entry.value / max, barHeight);
-      context.fillStyle = "#063b5a";
-      context.fillText(entry.value.toFixed(2), width - 32, y + barHeight - 3);
-    });
-  }
-
   const overviewH = [0.22, 0.35, 0.18, 0.49, 0.31, 0.58, 0.26, 0.43, 0.19, 0.36, 0.28, 0.51];
   const overviewL = [-0.18, -0.31, -0.24, -0.42, -0.21, -0.35, -0.15, -0.29, -0.45, -0.22, -0.34, -0.18];
   const thickness = [121, 78, 118, 82, 124, 76, 119, 84, 122, 79, 117, 81];
@@ -225,7 +234,6 @@
     const item = anomalyData[anomalyMetric];
     $("guideAnomalyTitle").textContent = item.title;
     lineChart("guideAnomalyCanvas", [{ name: item.title, values: item.values, color: "#075e91", points: true }], { alerts: item.alerts, smooth: true });
-    barChart("guideCorrelationCanvas", [{ label: "时间偏差", value: 0.71 }, { label: "实际速率", value: 0.64 }, { label: "功率均值", value: 0.58 }, { label: "腔体温度", value: 0.49 }]);
   }
 
   function drawAll() {
@@ -240,7 +248,7 @@
 
   function moveLayer(delta) {
     selectedLayer = Math.max(95, Math.min(99, selectedLayer + delta));
-    $("guideLayerLabel").textContent = `第 ${selectedLayer} 层`;
+    $("guideLayerLabel").textContent = `${selectedLayer}层`;
     $("guideImageLayer").textContent = `Layer ${selectedLayer}`;
     showDetail("optical-detail");
     drawLayer();
@@ -272,5 +280,6 @@
   }));
 
   new ResizeObserver(drawAll).observe(document.querySelector(".guide-client"));
+  setScope("combined");
   setModule(activeModule);
 })();
