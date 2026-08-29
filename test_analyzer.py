@@ -871,6 +871,18 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn(b"\r\n", content)
             self.assertNotIn(b"\n", content.replace(b"\r\n", b""))
 
+    def test_installer_allows_directory_selection_and_tolerates_desktop_shortcut_failure(self):
+        script = (Path(__file__).parent / "installer" / "LogAnalysis.iss").read_text(encoding="utf-8")
+        self.assertIn("DisableDirPage=no", script)
+        self.assertNotIn('Name: "{autodesktop}\\{#MyAppName}"', script)
+        self.assertIn("User Shell Folders", script)
+        self.assertIn("WizardIsTaskSelected('desktopicon')", script)
+        self.assertIn("CreateShellLink(", script)
+        self.assertIn("except", script)
+        self.assertIn("已完成安装，但桌面快捷方式创建失败", script)
+        self.assertIn("RegWriteStringValue(HKCU, InstallerSettingsKey", script)
+        self.assertIn("DeleteFile(ShortcutPath)", script)
+
     def test_public_site_is_local_only_and_links_to_releases(self):
         project = Path(__file__).parent
         html = (project / "site" / "index.html").read_text(encoding="utf-8")

@@ -1,6 +1,6 @@
 #define MyAppName "Log Analysis"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.0-beta.5"
+  #define MyAppVersion "0.1.0-beta.6"
 #endif
 #define MyNumericVersion "0.1.0.0"
 #define MyAppPublisher "Reyppp"
@@ -17,6 +17,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
 DefaultDirName={localappdata}\Programs\{#MyAppName}
+DisableDirPage=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -46,7 +47,6 @@ Source: "..\dist\Log Analysis\*"; DestDir: "{app}"; Flags: ignoreversion recurse
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "启动 {#MyAppName}"; Flags: nowait postinstall skipifsilent
@@ -54,6 +54,23 @@ Filename: "{app}\{#MyAppExeName}"; Description: "启动 {#MyAppName}"; Flags: no
 [Code]
 var
   RemoveSettings: Boolean;
+
+const
+  InstallerSettingsKey = 'Software\Log Analysis\Installer';
+
+function GetDesktopDirectory(): String;
+begin
+  Result := '';
+  if not RegQueryStringValue(HKCU,
+    'Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders',
+    'Desktop', Result) or (Result = '') or (Pos('%', Result) > 0) then
+    Result := ExpandConstant('{userdesktop}');
+end;
+
+function GetDesktopShortcutPath(Param: String): String;
+begin
+  Result := AddBackslash(GetDesktopDirectory()) + '{#MyAppName}.lnk';
+end;
 
 function HasWebView2At(Base: String): Boolean;
 var
@@ -87,10 +104,51 @@ begin
   end;
 end;
 
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ShortcutPath: String;
+begin
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('desktopicon') then
+  begin
+    ShortcutPath := GetDesktopShortcutPath('');
+    try
+      ForceDirectories(ExtractFileDir(ShortcutPath));
+      CreateShellLink(
+        ShortcutPath,
+        '{#MyAppName}',
+        ExpandConstant('{app}\{#MyAppExeName}'),
+        '',
+        ExpandConstant('{app}'),
+        ExpandConstant('{app}\{#MyAppExeName}'),
+        0,
+        SW_SHOWNORMAL);
+      RegWriteStringValue(HKCU, InstallerSettingsKey,
+        'DesktopShortcut', ShortcutPath);
+    except
+      Log('Desktop shortcut creation failed: ' + GetExceptionMessage);
+      SuppressibleMsgBox(
+        'Log Analysis 已完成安装，但桌面快捷方式创建失败。' + #13#10 +
+        '请从开始菜单启动应用。',
+        mbInformation, MB_OK, IDOK);
+    end;
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ShortcutPath: String;
 begin
   if CurUninstallStep = usUninstall then
     RemoveSettings := SuppressibleMsgBox('是否同时删除 Log Analysis 保存的上次炉次路径？', mbConfirmation, MB_YESNO, IDNO) = IDYES;
-  if (CurUninstallStep = usPostUninstall) and RemoveSettings then
-    DelTree(ExpandConstant('{localappdata}\Log Analysis'), True, True, True);
+  if CurUninstallStep = usPostUninstall then
+  begin
+    if RegQueryStringValue(HKCU, InstallerSettingsKey,
+      'DesktopShortcut', ShortcutPath) and FileExists(ShortcutPath) then
+      DeleteFile(ShortcutPath);
+    RegDeleteValue(HKCU, InstallerSettingsKey, 'DesktopShortcut');
+    RegDeleteKeyIfEmpty(HKCU, InstallerSettingsKey);
+    RegDeleteKeyIfEmpty(HKCU, 'Software\Log Analysis');
+    if RemoveSettings then
+      DelTree(ExpandConstant('{localappdata}\Log Analysis'), True, True, True);
+  end;
 end;
