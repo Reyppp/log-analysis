@@ -34,7 +34,7 @@ Log Analysis 将连续工控log与逐层监控log只读汇总为可筛选、可�
 - 综合模式下 `Motor Speed` 以工控log为准，并保留监控log参考值用于审计。
 - 中文界面为主，核心入口保持 `analyze_folder(path) -> AnalysisResult`。
 - 第一版只支持 Windows x64，不提供在线分析、数据库、账号或自动更新。
-- 当前二进制版本是未签名测试版 `v0.1.0-beta.5`。
+- 当前二进制版本是未签名测试版 `v0.1.0-beta.6`。
 
 ## Brand Commitments
 
