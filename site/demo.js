@@ -7,14 +7,21 @@
   const hotspots = [...document.querySelectorAll("[data-guide-hotspot]")];
   const scopeTabs = [...document.querySelectorAll("[data-site-scope]")];
   const moduleFirstHotspot = {
-    overview: "overview-review",
-    theory: "theory-band",
-    optical: "optical-endpoint",
-    device: "device-metric",
-    anomaly: "anomaly-metric"
+    combined: { overview: "combined-alignment", device: "combined-device" },
+    monitor: { overview: "overview-review", theory: "theory-band", optical: "optical-endpoint", device: "device-metric", anomaly: "anomaly-metric" },
+    machine: { overview: "machine-samples", device: "machine-device" }
   };
 
   const details = {
+    "scope-combined": ["综合", "双源关联", "自动匹配工控工作时段与监控镀膜层，并校正时钟偏移。", "需要在同一时间或层号范围内核对两类日志时使用。", "选择综合，再通过总览确认关联状态并进入设备模块。", "关联失败时不会强制合并，两类日志仍可独立分析。"],
+    "scope-monitor": ["监控log", "逐层分析", "关联理论、光学、设备记录和统计复核提示。", "需要按镀膜层复核理论设定、光学曲线或设备变化时使用。", "选择监控log，再从左侧进入五个逐层分析模块。", "监控log以层为核心，不包含连续工控时间轴。"],
+    "scope-machine": ["工控log", "连续设备记录", "合并连续日期文件并展示设备的实际采样点。", "需要核对功率、真空、温度、气体或转速的连续变化时使用。", "选择工控log，再按材料、区段和设备指标筛选。", "仅有工控log时不推测镀膜层；双源关联后可显示对应层。"],
+    "combined-alignment": ["综合总览", "双源关联", "汇总两类日志的完整性、镀膜层匹配和时钟偏移。", "开始跨源设备对照前确认关联结果时使用。", "查看关联状态、匹配层数和时钟偏移，再进入设备模块。", "关联状态描述数据匹配结果，不代表工艺质量。"],
+    "combined-motor": ["综合总览", "转速来源", "综合模式以工控log的 Motor Speed 作为逐层转速。", "核对监控log与工控log转速差异时使用。", "查看工控log权威值，并保留监控log参考值用于审计。", "其他设备字段不互相覆盖，仍按数据源分别展示。"],
+    "combined-device": ["综合设备", "双源设备对照", "按镀膜层或时间对照工控log与监控log设备数据。", "排查同一层或同一时刻的跨源差异时使用。", "选择横坐标与设备指标，再使用层范围、材料和监控方式筛选。", "时间图展示日志中的实际采样点，不计算插值。"],
+    "machine-samples": ["工控log总览", "实际采样点", "统计当前筛选范围内的连续设备记录。", "确认日期文件覆盖范围和可用数据量时使用。", "选择材料或镀膜区段后查看采样点与工作时间变化。", "采样点来自原始日志；趋势展示会优先保留真实边界与极值。"],
+    "machine-quality": ["工控log总览", "数据质量", "检查日期连续性、重复时间、时间缺口和设备逻辑。", "解释连续趋势前确认工控数据是否完整时使用。", "在总览中展开整炉工控log结构与时间质量。", "质量提示用于数据核验，不输出产品合格结论。"],
+    "machine-device": ["工控log设备", "连续设备趋势", "按时间显示功率、电流、电压、真空、温度、气体和转速。", "需要查看设备在镀膜区段内的连续变化时使用。", "选择材料、区段和设备指标，查看对应实际采样点。", "单选 H 或 L 时只显示该材料参与工作的时间。"],
     "overview-review": ["总览", "重点复核层", "汇总达到重点复核阈值的层。", "完成分析后确定优先检查顺序。", "进入总览，选择重点复核层查看对应记录。", "统计偏离仅提供复核线索，不代表质量结论。"],
     "overview-quality": ["总览", "数据质量", "汇总缺失文件、字段异常和时间逻辑问题。", "解读趋势和复核提示前确认数据可用性。", "展开数据质量记录，按错误、警告和提示逐项核验。", "数据质量问题独立于统计复核提示。"],
     "theory-band": ["理论趋势", "材料与监控方式", "按层显示 H/L 材料及 OMS/Timer 监控方式。", "核对材料切换和监控方式分布时使用。", "选择该区域，再结合层号检查连续性和切换位置。", "材料与监控方式用于分组解释，不直接表示异常。"],
@@ -27,21 +34,23 @@
     "anomaly-ranking": ["异常复核", "异常排名", "按等级和偏离程度排列需复核层。", "需要确定单层核验顺序时使用。", "选择排名记录，再进入对应层的光学或设备详情。", "排名只反映统计偏离程度，不代表质量判定。"]
   };
 
-  const scopeContent = {
-    combined: ["综合分析", "自动校正双源时间偏移，按层数或时间对照设备状态。", "已关联", "工控log + 监控log", "总览、设备", "双源时间对齐、层数/时间横坐标、转速来源核验", "层范围、材料、监控方式、区段"],
-    monitor: ["监控log分析", "按镀膜层汇总理论、光学、设备统计与复核提示。", "逐层分析", "理论文件、MeasPower、MachineStatus、CoatingLog", "总览、理论趋势、光学、设备、异常复核", "单层曲线、理论曲线、原始截图、H/L 分组统计", "层范围、材料、监控方式"],
-    machine: ["工控log分析", "合并连续日期日志，查看设备在真实时间轴上的变化。", "连续数据", "YYYY-MM-DD.csv", "总览、设备", "工作区段识别、8,000 点趋势、O₂/Ar 独立通道", "材料、区段；关联后增加层范围与监控方式"]
+  const scopeConfig = {
+    combined: { note: "已关联 180 个镀膜层", filters: ["起始层 1", "结束层 180", "材料 H / L", "监控方式 OMS / Timer", "镀膜区段 1"] },
+    monitor: { note: "当前包含 180 个监控层", filters: ["起始层 1", "结束层 180", "材料 H / L", "监控方式 OMS / Timer", "异常阈值 3.5"] },
+    machine: { note: "当前包含 2 个日期文件", filters: ["起始层 1", "结束层 180", "材料 H / L", "监控方式 OMS / Timer", "镀膜区段 1"] }
   };
 
+  let activeScope = "combined";
   let activeModule = "overview";
-  let activeHotspot = "overview-review";
+  let activeHotspot = "combined-alignment";
   let selectedLayer = 96;
   let deviceMetric = "power";
   let anomalyMetric = "residual";
 
   function setScope(name, focusTab = false) {
-    const content = scopeContent[name];
-    if (!content) return;
+    const config = scopeConfig[name];
+    if (!config) return;
+    activeScope = name;
     scopeTabs.forEach(tab => {
       const active = tab.dataset.siteScope === name;
       tab.classList.toggle("active", active);
@@ -49,8 +58,14 @@
       tab.tabIndex = active ? 0 : -1;
       if (active && focusTab) tab.focus();
     });
-    $("scope-panel").setAttribute("aria-labelledby", `scope-tab-${name}`);
-    ["scopeTitle", "scopeSummary", "scopeStatus", "scopeData", "scopeModules", "scopeFeature", "scopeFilters"].forEach((id, index) => { $(id).textContent = content[index]; });
+    moduleTabs.forEach(tab => { tab.hidden = !tab.dataset.guideScopes.split(" ").includes(name); });
+    document.querySelectorAll("[data-guide-scope-panel]").forEach(panel => { panel.hidden = panel.dataset.guideScopePanel !== name; });
+    $("guideFilterbar").innerHTML = config.filters.map(item => `<span>${item}</span>`).join("");
+    $("guideSourceNote").textContent = config.note;
+    const currentTab = moduleTabs.find(tab => tab.dataset.guideModule === activeModule && !tab.hidden);
+    setModule(currentTab ? activeModule : "overview");
+    showDetail(`scope-${name}`);
+    requestAnimationFrame(drawAll);
   }
 
   scopeTabs.forEach((tab, index) => {
@@ -96,18 +111,20 @@
       panel.classList.toggle("active", active);
       panel.hidden = !active;
     });
-    showDetail(moduleFirstHotspot[name]);
+    showDetail(moduleFirstHotspot[activeScope][name] || `scope-${activeScope}`);
     requestAnimationFrame(drawAll);
   }
 
-  moduleTabs.forEach((tab, index) => {
+  moduleTabs.forEach(tab => {
     tab.addEventListener("click", () => setModule(tab.dataset.guideModule));
     tab.addEventListener("keydown", event => {
       if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
       event.preventDefault();
+      const availableTabs = moduleTabs.filter(item => !item.hidden);
+      const index = availableTabs.indexOf(tab);
       const previous = event.key === "ArrowLeft" || event.key === "ArrowUp";
-      const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? moduleTabs.length - 1 : (index + (previous ? moduleTabs.length - 1 : 1)) % moduleTabs.length;
-      setModule(moduleTabs[nextIndex].dataset.guideModule, true);
+      const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? availableTabs.length - 1 : (index + (previous ? availableTabs.length - 1 : 1)) % availableTabs.length;
+      setModule(availableTabs[nextIndex].dataset.guideModule, true);
     });
   });
 
@@ -164,16 +181,20 @@
       const points = item.values.map((value, index) => point(value, index, item.values.length));
       context.strokeStyle = item.color;
       context.lineWidth = item.width || 2;
-      context.beginPath();
-      points.forEach((current, index) => {
-        if (!index) context.moveTo(current.x, current.y);
-        else if (options.smooth) {
-          const previous = points[index - 1];
-          context.quadraticCurveTo(previous.x, previous.y, (previous.x + current.x) / 2, (previous.y + current.y) / 2);
-          if (index === points.length - 1) context.lineTo(current.x, current.y);
-        } else context.lineTo(current.x, current.y);
-      });
-      context.stroke();
+      context.setLineDash(item.dash || []);
+      if (options.lines !== false) {
+        context.beginPath();
+        points.forEach((current, index) => {
+          if (!index) context.moveTo(current.x, current.y);
+          else if (options.smooth) {
+            const previous = points[index - 1];
+            context.quadraticCurveTo(previous.x, previous.y, (previous.x + current.x) / 2, (previous.y + current.y) / 2);
+            if (index === points.length - 1) context.lineTo(current.x, current.y);
+          } else context.lineTo(current.x, current.y);
+        });
+        context.stroke();
+      }
+      context.setLineDash([]);
       if (item.points) {
         context.fillStyle = item.color;
         points.forEach(current => { context.beginPath(); context.arc(current.x, current.y, 2.4, 0, Math.PI * 2); context.fill(); });
@@ -200,6 +221,10 @@
   const opticalMeas = [0.43, 0.46, 0.44, 0.49, 0.47, 0.52, 0.48, 0.54, 0.50, 0.53, 0.49, 0.55];
   const opticalCalc = [0.42, 0.45, 0.45, 0.48, 0.48, 0.50, 0.49, 0.52, 0.51, 0.52, 0.50, 0.53];
   const opticalTheory = [0.44, 0.44, 0.46, 0.46, 0.48, 0.48, 0.50, 0.50, 0.51, 0.51, 0.52, 0.52];
+  const combinedActualTime = [398, 286, 421, 274, 405, 291, 418, 281, 399, 296, 426, 278];
+  const combinedTargetTime = [392, 281, 415, 270, 401, 286, 411, 276, 395, 291, 419, 274];
+  const machinePowerH = [5.92, 6.08, 5.87, 6.21, 6.03, 6.17, 5.95, 6.26, 6.11, 5.99, 6.22, 6.06, 6.18, 5.91, 6.24, 6.09, 6.15, 6.01];
+  const machinePowerL = [4.08, 4.22, 4.15, 4.31, 4.18, 4.27, 4.12, 4.36, 4.21, 4.16, 4.33, 4.19, 4.29, 4.11, 4.35, 4.23, 4.26, 4.17];
 
   const deviceData = {
     power: { title: "功率均值逐层趋势", unit: "日志原始值", h: [5.8, 6.0, 5.9, 6.2, 6.1, 6.3, 6.0, 6.2, 6.1, 6.4, 6.2, 6.3], l: [4.1, 4.2, 4.0, 4.3, 4.2, 4.4, 4.1, 4.3, 4.2, 4.5, 4.3, 4.4] },
@@ -230,6 +255,38 @@
     $("guideDeviceStats").innerHTML = row("H 材料", item.h) + row("L 材料", item.l);
   }
 
+  function drawCombinedOverview() {
+    lineChart("guideCombinedOverviewCanvas", [
+      { name: "监控实际", values: combinedActualTime, color: "#075e91", points: true },
+      { name: "工控工作", values: combinedTargetTime, color: "#c5691a", points: true }
+    ], { min: 250, max: 450, smooth: true });
+  }
+
+  function drawMachineOverview() {
+    lineChart("guideMachineOverviewCanvas", [
+      { name: "H 材料", values: machinePowerH, color: "#075e91", points: true },
+      { name: "L 材料", values: machinePowerL, color: "#c5691a", points: true }
+    ], { min: 3.8, max: 6.5, lines: false });
+  }
+
+  function drawCombinedDevice() {
+    const monitorH = deviceData.power.h;
+    const monitorL = deviceData.power.l;
+    lineChart("guideCombinedDeviceCanvas", [
+      { name: "H 工控", values: machinePowerH.slice(0, 12), color: "#075e91", points: true },
+      { name: "L 工控", values: machinePowerL.slice(0, 12), color: "#c5691a", points: true },
+      { name: "H 监控", values: monitorH, color: "#075e91", points: true, dash: [3, 3] },
+      { name: "L 监控", values: monitorL, color: "#c5691a", points: true, dash: [3, 3] }
+    ], { min: 3.8, max: 6.6, smooth: true });
+  }
+
+  function drawMachineDevice() {
+    lineChart("guideMachineDeviceCanvas", [
+      { name: "H 材料", values: machinePowerH, color: "#075e91", points: true },
+      { name: "L 材料", values: machinePowerL, color: "#c5691a", points: true }
+    ], { min: 3.8, max: 6.5, lines: false });
+  }
+
   function drawAnomaly() {
     const item = anomalyData[anomalyMetric];
     $("guideAnomalyTitle").textContent = item.title;
@@ -237,12 +294,16 @@
   }
 
   function drawAll() {
+    drawCombinedOverview();
+    drawMachineOverview();
     lineChart("guideOverviewCanvas", [{ name: "H 材料", values: overviewH, color: "#075e91" }, { name: "L 材料", values: overviewL, color: "#c5691a" }], { min: -0.6, max: 0.7, alerts: [5, 10] });
     lineChart("guideThicknessCanvas", [{ name: "物理厚度", values: thickness, color: "#075e91", points: true }], { min: 60, max: 135, smooth: true });
     lineChart("guideRateCanvas", [{ name: "理论速率", values: rateTheory, color: "#075e91", points: true }, { name: "实际速率", values: rateActual, color: "#c5691a", points: true }], { min: 0.4, max: 0.7, smooth: true });
     lineChart("guideOpticalCanvas", [{ name: "Meas", values: opticalMeas, color: "#075e91" }, { name: "动态 Calc", values: opticalCalc, color: "#c5691a" }, { name: "理论 End T", values: opticalTheory, color: "#6d68a8" }], { min: 0.38, max: 0.58, smooth: true });
     drawLayer();
+    drawCombinedDevice();
     drawDevice();
+    drawMachineDevice();
     drawAnomaly();
   }
 
@@ -281,5 +342,4 @@
 
   new ResizeObserver(drawAll).observe(document.querySelector(".guide-client"));
   setScope("combined");
-  setModule(activeModule);
 })();

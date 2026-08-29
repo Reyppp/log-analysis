@@ -25,8 +25,7 @@
       <span><strong>Log Analysis</strong><small>镀膜日志分析工作台</small></span>
     </a>
     <nav aria-label="主要导航">
-      <a href="#modes">分析范围</a>
-      <a href="#capabilities">功能说明</a>
+      <a href="#capabilities">客户端说明</a>
       <a href="#privacy">本地处理</a>
       <a href="#install">安装</a>
       <a href="https://github.com/Reyppp/log-analysis">源码</a>
@@ -74,68 +73,83 @@
       </figure>
     </section>
 
-    <section class="scope-section" id="modes">
-      <div class="scope-intro">
-        <h2>一个文件夹，三种分析范围</h2>
-        <p>程序自动识别可用日志。选择综合、监控log或工控log，界面只显示当前数据源支持的模块。</p>
-      </div>
-      <div class="scope-workbench">
-        <div class="scope-tabs" role="tablist" aria-label="分析范围">
-          <button class="active" id="scope-tab-combined" type="button" role="tab" aria-selected="true" aria-controls="scope-panel" data-site-scope="combined"><strong>综合</strong><span>双源关联与设备对照</span></button>
-          <button id="scope-tab-monitor" type="button" role="tab" aria-selected="false" aria-controls="scope-panel" data-site-scope="monitor"><strong>监控log</strong><span>逐层理论、光学与复核</span></button>
-          <button id="scope-tab-machine" type="button" role="tab" aria-selected="false" aria-controls="scope-panel" data-site-scope="machine"><strong>工控log</strong><span>最多 8,000 点连续设备趋势</span></button>
-        </div>
-        <section class="scope-panel" id="scope-panel" role="tabpanel" aria-labelledby="scope-tab-combined" tabindex="0">
-          <div class="scope-panel-head"><div><h3 id="scopeTitle">综合分析</h3><p id="scopeSummary">自动校正双源时间偏移，按层数或时间对照设备状态。</p></div><span id="scopeStatus">已关联</span></div>
-          <div class="scope-timeline" aria-hidden="true"><span></span><i></i><span></span><i></i><span></span><i></i><span></span></div>
-          <dl class="scope-facts">
-            <div><dt>数据</dt><dd id="scopeData">工控log + 监控log</dd></div>
-            <div><dt>模块</dt><dd id="scopeModules">总览、设备</dd></div>
-            <div><dt>重点功能</dt><dd id="scopeFeature">双源时间对齐、层数/时间横坐标、转速来源核验</dd></div>
-            <div><dt>筛选</dt><dd id="scopeFilters">层范围、材料、监控方式、区段</dd></div>
-          </dl>
-        </section>
-      </div>
-    </section>
-
     <section class="client-guide" id="capabilities">
+      <span class="section-anchor" id="modes" aria-hidden="true"></span>
       <div class="guide-intro">
-        <h2>监控log五大模块</h2>
-        <p>切换模块并选择高亮区域，查看逐层分析的功能、适用场景、操作方法和结果说明。页面使用合成数据。</p>
+        <h2>三种分析范围，同一工作台</h2>
+        <p>程序自动识别工控log与监控log。切换分析范围后，模块、筛选条件和结果在同一界面内更新。演示使用合成数据。</p>
       </div>
 
       <div class="guide-layout">
         <section class="guide-client" aria-label="Log Analysis 合成数据客户端演示">
           <div class="guide-windowbar">
             <span class="demo-logo" aria-hidden="true">LA</span>
-            <strong>Log Analysis</strong>
-            <span class="guide-context">监控log</span>
-            <span class="guide-path">D:\Process\Demo-Lot</span>
-            <span class="guide-ready">分析完成</span>
+            <span class="guide-brand"><strong>Log Analysis</strong><small>镀膜日志分析工作台</small></span>
+            <span class="guide-path"><small>日志文件夹</small>D:\Process\Demo-Lot</span>
+            <button class="guide-toolbar-button" type="button">选择文件夹</button>
+            <button class="guide-toolbar-button primary" type="button">开始分析</button>
+            <span class="guide-ready">服务可用<br>分析完成</span>
           </div>
-          <div class="guide-app">
+          <div class="guide-sourcebar">
+            <strong>分析范围</strong>
+            <div class="guide-source-options" role="tablist" aria-label="分析范围">
+              <button class="active" id="scope-tab-combined" type="button" role="tab" aria-selected="true" aria-controls="guide-workspace" data-site-scope="combined">综合</button>
+              <button id="scope-tab-monitor" type="button" role="tab" aria-selected="false" aria-controls="guide-workspace" data-site-scope="monitor">监控log</button>
+              <button id="scope-tab-machine" type="button" role="tab" aria-selected="false" aria-controls="guide-workspace" data-site-scope="machine">工控log</button>
+            </div>
+            <span id="guideSourceNote">已关联 180 个镀膜层</span>
+          </div>
+          <div class="guide-app" id="guide-workspace">
             <nav class="guide-module-nav" role="tablist" aria-label="分析模块" aria-orientation="vertical">
-              <button class="active" id="guide-tab-overview" type="button" role="tab" aria-selected="true" aria-controls="guide-panel-overview" data-guide-module="overview">总览</button>
-              <button id="guide-tab-theory" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-theory" data-guide-module="theory">理论趋势</button>
-              <button id="guide-tab-optical" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-optical" data-guide-module="optical">光学</button>
-              <button id="guide-tab-device" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-device" data-guide-module="device">设备</button>
-              <button id="guide-tab-anomaly" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-anomaly" data-guide-module="anomaly">异常复核</button>
+              <span class="guide-nav-label">分析模块</span>
+              <button class="active" id="guide-tab-overview" type="button" role="tab" aria-selected="true" aria-controls="guide-panel-overview" data-guide-module="overview" data-guide-scopes="combined monitor machine">总览</button>
+              <button id="guide-tab-theory" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-theory" data-guide-module="theory" data-guide-scopes="monitor" hidden>理论趋势</button>
+              <button id="guide-tab-optical" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-optical" data-guide-module="optical" data-guide-scopes="monitor" hidden>光学</button>
+              <button id="guide-tab-device" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-device" data-guide-module="device" data-guide-scopes="combined monitor machine">设备</button>
+              <button id="guide-tab-anomaly" type="button" role="tab" aria-selected="false" aria-controls="guide-panel-anomaly" data-guide-module="anomaly" data-guide-scopes="monitor" hidden>异常复核</button>
             </nav>
 
             <div class="guide-screen-wrap">
-              <div class="guide-filterbar" aria-label="演示筛选条件"><span>层号 1-180</span><span>材料 H / L</span><span>监控方式 OMS / Timer</span></div>
+              <div class="guide-filterbar" id="guideFilterbar" aria-label="演示筛选条件"><span>起始层 1</span><span>结束层 180</span><span>材料 H / L</span><span>监控方式 OMS / Timer</span><span>镀膜区段 1</span></div>
 
               <section class="guide-screen active" id="guide-panel-overview" role="tabpanel" aria-labelledby="guide-tab-overview" data-guide-panel="overview">
-                <div class="guide-page-title"><div><h3>总览</h3><p>完成状态、累计时间与优先复核入口</p></div><span>合成数据</span></div>
-                <div class="guide-kpis">
-                  <div><span>炉号</span><strong>DEMO-180</strong></div>
-                  <div><span>层数</span><strong>180</strong><small>H 96 / L 84</small></div>
-                  <div><span>完成状态</span><strong>已完成</strong></div>
-                  <div><span>累计镀膜</span><strong>20 h 18 m</strong><small>理论 19 h 52 m</small></div>
-                  <button type="button" data-guide-hotspot="overview-review"><span>重点复核层</span><strong>2</strong><small>选择查看说明</small></button>
-                  <button type="button" data-guide-hotspot="overview-quality"><span>数据质量</span><strong>0 错误</strong><small>3 项提示</small></button>
+                <div data-guide-scope-panel="combined">
+                  <div class="guide-page-title"><div><h3>综合总览</h3><p>双源完整性、关联状态与当前筛选统计</p></div><span>合成数据</span></div>
+                  <div class="guide-status-line"><b>已关联</b><span>工控log与监控log已匹配 180 个镀膜层</span></div>
+                  <div class="guide-kpis">
+                    <button type="button" data-guide-hotspot="combined-alignment"><span>监控层数</span><strong>180</strong><small>H 96 / L 84</small></button>
+                    <div><span>镀膜层数</span><strong>180</strong><small>关联结果</small></div>
+                    <div><span>实际镀膜时间</span><strong>20 h 18 m</strong><small>监控log</small></div>
+                    <div><span>靶材工作时间</span><strong>19 h 52 m</strong><small>工控log</small></div>
+                    <div><span>时钟偏移</span><strong>+207.4 s</strong><small>统一到监控log时间</small></div>
+                    <button type="button" data-guide-hotspot="combined-motor"><span>转速来源</span><strong>工控log</strong><small>保留监控log参考值</small></button>
+                  </div>
+                  <figure class="guide-chart"><figcaption><strong>实际镀膜时间与靶材工作时间</strong><span>按镀膜层对照</span></figcaption><canvas id="guideCombinedOverviewCanvas" aria-label="合成双源时间对照曲线"></canvas><small>层号</small></figure>
                 </div>
-                <figure class="guide-chart"><figcaption><strong>理论终点偏移概览</strong><span>Meas - 理论 End T（%）</span></figcaption><canvas id="guideOverviewCanvas" aria-label="合成理论终点偏移曲线"></canvas><small>层号</small></figure>
+                <div data-guide-scope-panel="monitor" hidden>
+                  <div class="guide-page-title"><div><h3>监控log总览</h3><p>完成状态、累计时间与优先复核入口</p></div><span>合成数据</span></div>
+                  <div class="guide-kpis">
+                    <div><span>炉号</span><strong>DEMO-180</strong></div>
+                    <div><span>层数</span><strong>180</strong><small>H 96 / L 84</small></div>
+                    <div><span>完成状态</span><strong>已完成</strong></div>
+                    <div><span>累计镀膜</span><strong>20 h 18 m</strong><small>理论 19 h 52 m</small></div>
+                    <button type="button" data-guide-hotspot="overview-review"><span>重点复核层</span><strong>2</strong><small>选择查看说明</small></button>
+                    <button type="button" data-guide-hotspot="overview-quality"><span>数据质量</span><strong>0 错误</strong><small>3 项提示</small></button>
+                  </div>
+                  <figure class="guide-chart"><figcaption><strong>理论终点偏移概览</strong><span>Meas - 理论 End T（%）</span></figcaption><canvas id="guideOverviewCanvas" aria-label="合成理论终点偏移曲线"></canvas><small>层号</small></figure>
+                </div>
+                <div data-guide-scope-panel="machine" hidden>
+                  <div class="guide-page-title"><div><h3>工控log总览</h3><p>连续日期、工作时间与整炉数据质量</p></div><span>合成数据</span></div>
+                  <div class="guide-kpis">
+                    <div><span>日期文件</span><strong>2</strong><small>连续日期</small></div>
+                    <div><span>当前工作段</span><strong>180</strong><small>H 96 / L 84</small></div>
+                    <button type="button" data-guide-hotspot="machine-samples"><span>实际采样点</span><strong>54,286</strong><small>按时间连续记录</small></button>
+                    <div><span>当前时间范围</span><strong>20 h 26 m</strong><small>首个至末个工作段</small></div>
+                    <div><span>靶材工作时间</span><strong>19 h 52 m</strong><small>H/L 有效工作数据</small></div>
+                    <button type="button" data-guide-hotspot="machine-quality"><span>数据质量</span><strong>0 错误</strong><small>整炉时间检查</small></button>
+                  </div>
+                  <figure class="guide-chart"><figcaption><strong>H/L 功率时间趋势</strong><span>实际采样点</span></figcaption><canvas id="guideMachineOverviewCanvas" aria-label="合成工控log功率实际采样点"></canvas><small>时间</small></figure>
+                </div>
               </section>
 
               <section class="guide-screen" id="guide-panel-theory" role="tabpanel" aria-labelledby="guide-tab-theory" data-guide-panel="theory" hidden>
@@ -158,10 +172,30 @@
               </section>
 
               <section class="guide-screen" id="guide-panel-device" role="tabpanel" aria-labelledby="guide-tab-device" data-guide-panel="device" hidden>
-                <div class="guide-page-title"><div><h3>设备分析</h3><p>按材料比较逐层均值与波动</p></div><span>合成数据</span></div>
-                <div class="guide-metric-select" aria-label="设备指标"><strong>指标</strong><button class="active" type="button" aria-pressed="true" data-device-metric="power">功率</button><button type="button" aria-pressed="false" data-device-metric="temperature">温度</button><button type="button" aria-pressed="false" data-device-metric="vacuum">真空</button></div>
-                <figure class="guide-chart hotspot device-chart" role="button" tabindex="0" data-guide-hotspot="device-metric"><figcaption><strong id="guideDeviceTitle">功率均值逐层趋势</strong><span id="guideDeviceUnit">日志原始值</span></figcaption><canvas id="guideDeviceCanvas" aria-label="合成设备趋势"></canvas><small>层号</small></figure>
-                <div class="guide-stats hotspot" role="button" tabindex="0" data-guide-hotspot="device-groups"><strong>H/L 分组统计</strong><table><thead><tr><th>材料</th><th>样本数</th><th>均值</th><th>范围</th></tr></thead><tbody id="guideDeviceStats"></tbody></table></div>
+                <div data-guide-scope-panel="combined">
+                  <div class="guide-page-title"><div><h3>综合设备</h3><p>按镀膜层或时间对照双源设备数据</p></div><span>合成数据</span></div>
+                  <div class="guide-axis-toggle"><strong>横坐标</strong><button class="active" type="button">层数</button><button type="button">时间</button></div>
+                  <div class="guide-device-workbench">
+                    <aside class="guide-metric-rail" aria-label="综合设备指标"><strong>电气</strong><button class="active" type="button">功率</button><button type="button">电流</button><button type="button">电压</button><strong>环境</strong><button type="button">腔体真空</button><strong>转速</strong><button type="button">转速</button></aside>
+                    <figure class="guide-chart device-chart hotspot" role="button" tabindex="0" data-guide-hotspot="combined-device"><figcaption><strong>功率双源逐层对照</strong><span>工控log / 监控log</span></figcaption><canvas id="guideCombinedDeviceCanvas" aria-label="合成功率双源逐层对照"></canvas><small>层号</small></figure>
+                  </div>
+                  <div class="guide-stats"><strong>H/L 分组对照</strong><table><thead><tr><th>材料</th><th>监控log均值</th><th>工控log均值</th><th>差值</th></tr></thead><tbody><tr><td>H</td><td>6.18</td><td>6.14</td><td>-0.04</td></tr><tr><td>L</td><td>4.27</td><td>4.22</td><td>-0.05</td></tr></tbody></table></div>
+                </div>
+                <div data-guide-scope-panel="monitor" hidden>
+                  <div class="guide-page-title"><div><h3>监控log设备</h3><p>按材料比较逐层均值与波动</p></div><span>合成数据</span></div>
+                  <div class="guide-device-workbench">
+                    <aside class="guide-metric-rail" aria-label="监控log设备指标"><strong>电气</strong><button class="active" type="button" aria-pressed="true" data-device-metric="power">功率</button><button type="button" aria-pressed="false" data-device-metric="temperature">温度</button><button type="button" aria-pressed="false" data-device-metric="vacuum">真空</button><strong>转速</strong><button type="button">转速参考值</button></aside>
+                    <figure class="guide-chart hotspot device-chart" role="button" tabindex="0" data-guide-hotspot="device-metric"><figcaption><strong id="guideDeviceTitle">功率均值逐层趋势</strong><span id="guideDeviceUnit">日志原始值</span></figcaption><canvas id="guideDeviceCanvas" aria-label="合成监控log设备趋势"></canvas><small>层号</small></figure>
+                  </div>
+                  <div class="guide-stats hotspot" role="button" tabindex="0" data-guide-hotspot="device-groups"><strong>H/L 分组统计</strong><table><thead><tr><th>材料</th><th>样本数</th><th>均值</th><th>范围</th></tr></thead><tbody id="guideDeviceStats"></tbody></table></div>
+                </div>
+                <div data-guide-scope-panel="machine" hidden>
+                  <div class="guide-page-title"><div><h3>工控log设备</h3><p>查看连续设备记录中的实际采样点</p></div><span>合成数据</span></div>
+                  <div class="guide-device-workbench">
+                    <aside class="guide-metric-rail" aria-label="工控log设备指标"><strong>电气</strong><button class="active" type="button">功率</button><button type="button">电流</button><button type="button">电压</button><strong>气体</strong><button type="button">O₂</button><button type="button">Ar</button></aside>
+                    <figure class="guide-chart device-chart hotspot" role="button" tabindex="0" data-guide-hotspot="machine-device"><figcaption><strong>功率值时间趋势</strong><span>实际采样点</span></figcaption><canvas id="guideMachineDeviceCanvas" aria-label="合成工控log功率实际采样点"></canvas><small>时间</small></figure>
+                  </div>
+                </div>
               </section>
 
               <section class="guide-screen" id="guide-panel-anomaly" role="tabpanel" aria-labelledby="guide-tab-anomaly" data-guide-panel="anomaly" hidden>
@@ -178,13 +212,13 @@
         </section>
 
         <aside class="guide-explanation" id="guideExplanation" tabindex="-1" aria-live="polite">
-          <span id="guideDetailModule">总览</span>
-          <h3 id="guideDetailTitle">重点复核层</h3>
+          <span id="guideDetailModule">综合</span>
+          <h3 id="guideDetailTitle">双源关联</h3>
           <dl>
-            <div><dt>功能</dt><dd id="guideDetailFunction">汇总达到重点复核阈值的层。</dd></div>
-            <div><dt>适用场景</dt><dd id="guideDetailWhen">完成分析后确定优先检查顺序。</dd></div>
-            <div><dt>操作</dt><dd id="guideDetailHow">进入总览，选择重点复核层查看对应记录。</dd></div>
-            <div><dt>说明</dt><dd id="guideDetailNote">统计偏离仅提供复核线索，不代表质量结论。</dd></div>
+            <div><dt>功能</dt><dd id="guideDetailFunction">自动匹配工控工作时段与监控镀膜层，并校正时钟偏移。</dd></div>
+            <div><dt>适用场景</dt><dd id="guideDetailWhen">需要在同一时间或层号范围内核对两类日志时使用。</dd></div>
+            <div><dt>操作</dt><dd id="guideDetailHow">选择综合，再通过总览确认关联状态并进入设备模块。</dd></div>
+            <div><dt>说明</dt><dd id="guideDetailNote">关联失败时不会强制合并，两类日志仍可独立分析。</dd></div>
           </dl>
         </aside>
       </div>
@@ -200,7 +234,7 @@
     </section>
 
     <section class="install" id="install">
-      <div class="install-copy"><h2>安装 Windows 测试版</h2><p>v0.1.0-beta.5 新增工控log、双源关联与高密度设备趋势。当前版本未进行代码签名。已知问题：部分环境下单层详情图表或原始截图可能不显示。</p></div>
+      <div class="install-copy"><h2>安装 Windows 测试版</h2><p>v0.1.0-beta.5 新增工控log、双源关联与实际采样点设备趋势。当前版本未进行代码签名。已知问题：部分环境下单层详情图表或原始截图可能不显示。</p></div>
       <div class="install-steps">
         <ol>
           <li><span>1</span><div><strong>关闭旧版本</strong><p>升级前先退出所有正在运行的 Log Analysis 窗口。</p></div></li>
