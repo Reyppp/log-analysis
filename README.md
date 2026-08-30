@@ -16,11 +16,11 @@
 
 ## 核心功能
 
-- **综合分析**：自动关联工控log与监控log，校正时间偏移，并按层数或时间对照双源设备数据。
+- **综合分析**：自动关联工控log与监控log，校正时间偏移，并按层数或时间对照双源设备数据。未完成炉次按实际完成层关联；局部工控时间段可映射到唯一的连续监控层区间。
 - **监控log分析**：提供总览、理论趋势、光学、设备和异常复核五个模块，支持单层曲线、理论曲线、原始截图及前后切层。
 - **工控log分析**：连续查看功率、电流、电压、真空、温度、转速和气体数据，并按镀膜区段及材料筛选工作时间。
 - **统一筛选**：层范围、材料、监控方式和区段同步作用于可计算的汇总、图表和表格。
-- **设备趋势**：综合时间图在整张图内最多保留 8,000 个真实边界点和极值点；缩放与平移不重新请求数据。
+- **设备趋势**：综合时间图展示日志中的实际采样值，并优先保留真实边界与极值；缩放与平移不重新请求数据。
 - **数据来源**：综合模式下转速以工控log为准，同时保留监控log参考值用于核验。
 
 ## 安装
@@ -33,11 +33,11 @@
 ### 下载与校验
 
 1. 升级前先关闭所有正在运行的 Log Analysis 窗口。
-2. 下载 [Log Analysis v0.1.0-beta.7 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.7/Log-Analysis-Setup-v0.1.0-beta.7-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.7/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.7)。
+2. 下载 [Log Analysis v0.1.0-beta.8 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.8/Log-Analysis-Setup-v0.1.0-beta.8-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.8/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.8)。
 3. 在下载目录打开 PowerShell，运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.7-x64.exe
+Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.8-x64.exe
 Get-Content .\SHA256SUMS.txt
 ```
 
@@ -45,7 +45,7 @@ Get-Content .\SHA256SUMS.txt
 
 ### 安装与首次使用
 
-1. 双击 `Log-Analysis-Setup-v0.1.0-beta.7-x64.exe`。
+1. 双击 `Log-Analysis-Setup-v0.1.0-beta.8-x64.exe`。
 2. 在安装向导中选择安装目录；程序默认安装到当前用户目录，不需要管理员权限，桌面快捷方式可选。
 3. 桌面位于其他磁盘或使用目录链接时，安装程序会把已验证的开始菜单快捷方式复制到 Windows 登记的真实桌面路径；创建失败也不会中断应用安装。
 4. 当前版本是未签名测试版。若 SmartScreen 显示“Windows 已保护你的电脑”，请先确认 SHA-256 已匹配，再选择“更多信息”，核对文件名后选择“仍要运行”。如果组织安全策略禁止运行，请联系管理员，不要关闭系统安全功能。
