@@ -935,17 +935,34 @@ def _align_sources(layer_summary: pd.DataFrame, segments: pd.DataFrame) -> tuple
     summary["target_time_delta"] = math.nan
     summary["machine_segment_id"] = math.nan
     reviews: list[dict[str, Any]] = []
+    planned_layers = len(summary)
+    required = [column for column in ("layer_start", "layer_end", "actual_time") if column in summary]
+    complete_mask = summary[required].notna().all(axis=1) if len(required) == 3 else pd.Series(False, index=summary.index)
+    completed_layers = int(complete_mask.sum())
     failed = {
         "status": "failed", "confidence": "关联失败", "matched_segments": 0, "candidate_count": 0,
         "duration_correlation": None, "time_offset_seconds": None, "offset_std_seconds": None,
+        "coverage": None, "planned_layers": planned_layers, "completed_layers": completed_layers,
+        "matched_layer_start": None, "matched_layer_end": None,
+        "ignored_machine_edge_segments": [], "candidate_ranges": [],
         "reason": "未找到与监控log材料顺序一致的连续工控工作时段。",
     }
-    if summary.empty or segments.empty or summary["layer_start"].isna().any():
+    if summary.empty or segments.empty or completed_layers == 0:
         failed["reason"] = "镀膜层时间或工控工作时段不足，无法自动关联。"
         reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": None, "level": "重点复核", "reason": failed["reason"]})
         return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
+    last_completed = complete_mask[complete_mask].index[-1]
+    if not complete_mask.loc[:last_completed].all():
+        failed["reason"] = "已完成镀膜层之间存在时间数据缺口，未自动关联。"
+        reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": None, "level": "重点复核", "reason": failed["reason"]})
+        return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
+    if completed_layers < planned_layers and completed_layers < 30:
+        failed["reason"] = "未完成炉次少于 30 个连续已完成层，未自动关联。"
+        reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": completed_layers, "level": "重点复核", "reason": failed["reason"]})
+        return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
+    completed = summary.loc[complete_mask].reset_index(drop=True)
     eligible = segments[segments["material"].isin(["H", "L"])].sort_values("start").reset_index(drop=True)
-    target = summary["material"].astype(str).str.strip().tolist()
+    target = completed["material"].astype(str).str.strip().tolist()
 
     def candidate_metrics(monitor: pd.DataFrame, candidate: pd.DataFrame) -> tuple[float, float, float, float]:
         monitor_duration = pd.to_numeric(monitor["actual_time"], errors="coerce").reset_index(drop=True)
@@ -958,18 +975,58 @@ def _align_sources(layer_summary: pd.DataFrame, segments: pd.DataFrame) -> tuple
         score = (-1 if not math.isfinite(correlation) else correlation) - offset_std / 1000
         return score, correlation, offset_std, float(offsets.median())
 
-    candidates = []
+    def confidence_for(correlation: float, offset_std: float) -> str | None:
+        if math.isfinite(correlation) and correlation >= 0.98 and offset_std <= 5:
+            return "高可信"
+        if math.isfinite(correlation) and correlation >= 0.90 and offset_std <= 15:
+            return "中可信"
+        return None
+
+    def make_candidate(
+        monitor: pd.DataFrame, machine: pd.DataFrame, coverage: str, ignored: list[int] | None = None,
+    ) -> dict[str, Any]:
+        score, correlation, offset_std, offset = candidate_metrics(monitor, machine)
+        layer_start = int(monitor["layer"].iloc[0])
+        layer_end = int(monitor["layer"].iloc[-1])
+        return {
+            "score": score, "correlation": correlation, "offset_std": offset_std, "offset": offset,
+            "monitor": monitor.reset_index(drop=True), "machine": machine.reset_index(drop=True),
+            "coverage": coverage, "ignored": ignored or [], "layer_start": layer_start, "layer_end": layer_end,
+            "confidence": confidence_for(correlation, offset_std),
+        }
+
+    def candidate_range(candidate: dict[str, Any]) -> dict[str, Any]:
+        machine = candidate["machine"]
+        return {
+            "layer_start": candidate["layer_start"], "layer_end": candidate["layer_end"],
+            "confidence": candidate["confidence"],
+            "duration_correlation": candidate["correlation"],
+            "time_offset_seconds": candidate["offset"], "offset_std_seconds": candidate["offset_std"],
+            "machine_segment_start": int(machine["segment_id"].iloc[0]),
+            "machine_segment_end": int(machine["segment_id"].iloc[-1]),
+        }
+
+    def select_candidate(candidates: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+        for confidence in ("高可信", "中可信"):
+            tier = [candidate for candidate in candidates if candidate["confidence"] == confidence]
+            if len(tier) == 1:
+                return tier[0], tier
+            if len(tier) > 1:
+                return None, tier
+        return None, []
+
+    candidates: list[dict[str, Any]] = []
     for start in range(len(eligible) - len(target) + 1):
         candidate = eligible.iloc[start:start + len(target)]
         if candidate["material"].tolist() != target:
             continue
-        candidates.append((*candidate_metrics(summary, candidate), candidate))
+        candidates.append(make_candidate(completed, candidate, "all_completed"))
 
-    if not candidates and "layer_end" in summary:
-        gap_seconds = pd.to_datetime(summary["layer_start"], errors="coerce").sub(
-            pd.to_datetime(summary["layer_end"], errors="coerce").shift()
+    if not candidates:
+        gap_seconds = pd.to_datetime(completed["layer_start"], errors="coerce").sub(
+            pd.to_datetime(completed["layer_end"], errors="coerce").shift()
         ).dt.total_seconds()
-        monitor_runs = [group.reset_index(drop=True) for _, group in summary.groupby(gap_seconds.ge(300).cumsum())]
+        monitor_runs = [group.reset_index(drop=True) for _, group in completed.groupby(gap_seconds.ge(300).cumsum())]
         if len(monitor_runs) > 1:
             run_options: list[list[tuple[int, int, pd.DataFrame]]] = []
             for monitor_run in monitor_runs:
@@ -1008,33 +1065,93 @@ def _align_sources(layer_summary: pd.DataFrame, segments: pd.DataFrame) -> tuple
                     if not paths:
                         break
                 candidates.extend(
-                    (*metrics, pd.concat([item[2] for item in path], ignore_index=True))
-                    for path, _, metrics in paths
+                    make_candidate(completed, pd.concat([item[2] for item in path], ignore_index=True), "all_completed")
+                    for path, _, _ in paths
                 )
-    failed["candidate_count"] = len(candidates)
-    if not candidates:
+
+    chosen, conflicts = select_candidate(candidates)
+    if chosen is None and conflicts:
+        failed["candidate_count"] = len(candidates)
+        failed["candidate_ranges"] = [candidate_range(candidate) for candidate in conflicts]
+        failed["reason"] = "存在多个同级最高可信候选区间，未自动关联。"
         reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": None, "level": "重点复核", "reason": failed["reason"]})
         return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
-    _, correlation, offset_std, offset, matched = max(candidates, key=lambda item: item[0])
-    if math.isfinite(correlation) and correlation >= 0.98 and offset_std <= 5:
-        confidence = "高可信"
-    elif math.isfinite(correlation) and correlation >= 0.90 and offset_std <= 15:
-        confidence = "中可信"
-    else:
+
+    partial_candidates: list[dict[str, Any]] = []
+    if chosen is None and len(completed) >= 30:
+        session_groups = [group.sort_values("start").reset_index(drop=True) for _, group in eligible.groupby("session_id", sort=False)] if "session_id" in eligible else [eligible]
+
+        def search_partial(machine: pd.DataFrame, ignored: list[int]) -> list[dict[str, Any]]:
+            if not 30 <= len(machine) < len(completed):
+                return []
+            machine_target = machine["material"].astype(str).str.strip().tolist()
+            found = []
+            for start in range(len(completed) - len(machine) + 1):
+                monitor = completed.iloc[start:start + len(machine)]
+                if monitor["material"].astype(str).str.strip().tolist() == machine_target:
+                    found.append(make_candidate(monitor, machine, "partial_completed", ignored))
+            return found
+
+        for group in session_groups:
+            partial_candidates.extend(search_partial(group, []))
+        partial_chosen, partial_conflicts = select_candidate(partial_candidates)
+
+        if partial_chosen is None:
+            exact_conflicts = partial_conflicts
+            partial_conflicts = []
+            for variants in (((1, 0), (0, 1)), ((1, 1),)):
+                edge_candidates = []
+                for group in session_groups:
+                    for drop_first, drop_last in variants:
+                        stop = len(group) - drop_last if drop_last else len(group)
+                        machine = group.iloc[drop_first:stop].reset_index(drop=True)
+                        ignored_rows = pd.concat([group.iloc[:drop_first], group.iloc[stop:]], ignore_index=True)
+                        ignored = [int(value) for value in ignored_rows.get("segment_id", pd.Series(dtype=int)).tolist()]
+                        edge_candidates.extend(search_partial(machine, ignored))
+                partial_candidates.extend(edge_candidates)
+                partial_chosen, partial_conflicts = select_candidate(edge_candidates)
+                if partial_chosen is not None or partial_conflicts:
+                    break
+            if partial_chosen is None and not partial_conflicts:
+                partial_conflicts = exact_conflicts
+
+        candidates.extend(partial_candidates)
+        if partial_chosen is not None:
+            chosen = partial_chosen
+        elif partial_conflicts:
+            failed["candidate_count"] = len(candidates)
+            failed["candidate_ranges"] = [candidate_range(candidate) for candidate in partial_conflicts]
+            failed["reason"] = "存在多个同级最高可信候选区间，未自动关联。"
+            reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": None, "level": "重点复核", "reason": failed["reason"]})
+            return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
+
+    failed["candidate_count"] = len(candidates)
+    failed["candidate_ranges"] = [candidate_range(candidate) for candidate in candidates if candidate["confidence"]]
+    if chosen is None and not candidates:
+        reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": None, "level": "重点复核", "reason": failed["reason"]})
+        return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
+    if chosen is None:
+        best = max(candidates, key=lambda item: item["score"])
         failed.update(
-            candidate_count=len(candidates), duration_correlation=correlation,
-            time_offset_seconds=offset, offset_std_seconds=offset_std,
+            candidate_count=len(candidates), duration_correlation=best["correlation"],
+            time_offset_seconds=best["offset"], offset_std_seconds=best["offset_std"],
             reason="材料顺序匹配，但持续时间相关性或时钟偏移稳定性不足。",
         )
-        reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": correlation, "level": "重点复核", "reason": failed["reason"]})
+        reviews.append({"source": "跨源关联", "layer": None, "material": None, "metric": "alignment", "value": best["correlation"], "level": "重点复核", "reason": failed["reason"]})
         return failed, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
-    matched = matched.copy().reset_index(drop=True)
-    matched["layer"] = summary["layer"].astype(int).tolist()
+
+    correlation, offset_std, offset = chosen["correlation"], chosen["offset_std"], chosen["offset"]
+    confidence = chosen["confidence"]
+    matched_monitor = chosen["monitor"]
+    matched = chosen["machine"].copy().reset_index(drop=True)
+    matched["layer"] = matched_monitor["layer"].astype(int).tolist()
     matched_by_layer = matched.set_index("layer")
     layer_index = summary["layer"]
     for suffix in ("mean", "std", "min", "max", "range"):
-        summary[f"motor_{suffix}"] = layer_index.map(matched_by_layer[f"motor_{suffix}"])
-    summary["motor_source"] = "工控log"
+        mapped = layer_index.map(matched_by_layer[f"motor_{suffix}"])
+        summary.loc[mapped.notna(), f"motor_{suffix}"] = mapped[mapped.notna()]
+    matched_rows = layer_index.isin(matched_by_layer.index)
+    summary.loc[matched_rows, "motor_source"] = "工控log"
     summary["target_power_seconds"] = layer_index.map(matched_by_layer["target_seconds"])
     summary["target_time_delta"] = summary["target_power_seconds"] - summary["actual_time"]
     summary["machine_segment_id"] = layer_index.map(matched_by_layer["segment_id"])
@@ -1068,8 +1185,13 @@ def _align_sources(layer_summary: pd.DataFrame, segments: pd.DataFrame) -> tuple
         "status": "matched", "confidence": confidence, "matched_segments": len(matched),
         "candidate_count": len(candidates), "duration_correlation": correlation,
         "time_offset_seconds": offset, "offset_std_seconds": offset_std,
+        "coverage": chosen["coverage"], "planned_layers": planned_layers,
+        "completed_layers": completed_layers, "matched_layer_start": chosen["layer_start"],
+        "matched_layer_end": chosen["layer_end"],
+        "ignored_machine_edge_segments": chosen["ignored"],
+        "candidate_ranges": [candidate_range(candidate) for candidate in candidates if candidate["confidence"]],
         "machine_start": matched["start"].min(), "machine_end": matched["end"].max(),
-        "reason": "材料顺序、持续时间和时钟偏移满足自动关联条件。",
+        "reason": "材料顺序、持续时间和时钟偏移满足自动关联条件。" if chosen["coverage"] == "all_completed" else "工控log与监控log的连续层区间满足自动关联条件。",
     }
     return alignment, summary, pd.DataFrame(reviews, columns=CROSS_SOURCE_COLUMNS)
 

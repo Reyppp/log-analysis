@@ -31,6 +31,64 @@ GOLDEN_PATH = os.environ.get("LOG_ANALYSIS_GOLDEN_FOLDER")
 GOLDEN_FOLDER = Path(GOLDEN_PATH) if GOLDEN_PATH else None
 
 
+def alignment_frames(planned=120, completed=100, machine_layers=None, edge_materials=()):
+    start = pd.Timestamp("2026-08-20 12:00:00")
+    durations = [80 + ((index * 37) % 41) + index / 10 for index in range(planned)]
+    materials = ["H" if index % 2 == 0 else "L" for index in range(planned)]
+    monitor_rows = []
+    cursor = start
+    for index in range(planned):
+        is_complete = index < completed
+        duration = durations[index]
+        monitor_rows.append(
+            {
+                "layer": index + 1, "material": materials[index],
+                "layer_start": cursor if is_complete else pd.NaT,
+                "layer_end": cursor + pd.Timedelta(seconds=duration) if is_complete else pd.NaT,
+                "actual_time": duration if is_complete else None,
+                **{f"motor_{suffix}": 1280.0 for suffix in ("mean", "std", "min", "max", "range")},
+            }
+        )
+        cursor += pd.Timedelta(seconds=duration + 20)
+
+    selected = list(machine_layers or range(1, completed + 1))
+    segment_rows = []
+    segment_id = 1
+    for position, material in enumerate(edge_materials[:1]):
+        segment_rows.append(
+            {
+                "segment_id": segment_id, "session_id": 1, "material": material,
+                "start": start + pd.Timedelta(seconds=20 + position),
+                "end": start + pd.Timedelta(seconds=30 + position), "target_seconds": 10,
+                **{f"motor_{suffix}": 999.0 for suffix in ("mean", "std", "min", "max", "range")},
+            }
+        )
+        segment_id += 1
+    for layer in selected:
+        row = monitor_rows[layer - 1]
+        machine_start = row["layer_start"] + pd.Timedelta(seconds=180)
+        segment_rows.append(
+            {
+                "segment_id": segment_id, "session_id": 1, "material": row["material"],
+                "start": machine_start, "end": machine_start + pd.Timedelta(seconds=row["actual_time"] - 4),
+                "target_seconds": row["actual_time"],
+                **{f"motor_{suffix}": 280.0 for suffix in ("mean", "std", "min", "max", "range")},
+            }
+        )
+        segment_id += 1
+    for position, material in enumerate(edge_materials[1:]):
+        edge_start = segment_rows[-1]["end"] + pd.Timedelta(seconds=20 + position)
+        segment_rows.append(
+            {
+                "segment_id": segment_id, "session_id": 1, "material": material,
+                "start": edge_start, "end": edge_start + pd.Timedelta(seconds=10), "target_seconds": 10,
+                **{f"motor_{suffix}": 999.0 for suffix in ("mean", "std", "min", "max", "range")},
+            }
+        )
+        segment_id += 1
+    return pd.DataFrame(monitor_rows), pd.DataFrame(segment_rows)
+
+
 class AnalyzerTests(unittest.TestCase):
     def test_mixed_clock(self):
         self.assertEqual(parse_mixed_datetime("2026-08-20  13:00:00 PM"), datetime(2026, 8, 20, 13, 0, 0))
@@ -386,6 +444,7 @@ class AnalyzerTests(unittest.TestCase):
             {
                 "layer": range(1, 7), "material": materials,
                 "layer_start": [start + pd.Timedelta(seconds=index * 120) for index in range(6)],
+                "layer_end": [start + pd.Timedelta(seconds=index * 120 + duration) for index, duration in enumerate([80, 90, 100, 110, 120, 130])],
                 "actual_time": [80, 90, 100, 110, 120, 130],
                 **{f"motor_{suffix}": [1280.0] * 6 for suffix in ("mean", "std", "min", "max", "range")},
             }
@@ -411,6 +470,72 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(set(combined["motor_source"]), {"工控log"})
         self.assertEqual(set(combined["motor_mean"]), {280.0})
         self.assertEqual(set(combined["monitor_motor_mean"]), {1280.0})
+
+    def test_unfinished_run_matches_all_completed_layers_and_keeps_planned_tail(self):
+        monitor, segments = alignment_frames(planned=120, completed=100)
+        alignment, combined, _ = _align_sources(monitor, segments)
+
+        self.assertEqual(alignment["status"], "matched")
+        self.assertEqual(alignment["coverage"], "all_completed")
+        self.assertEqual(alignment["planned_layers"], 120)
+        self.assertEqual(alignment["completed_layers"], 100)
+        self.assertEqual((alignment["matched_layer_start"], alignment["matched_layer_end"]), (1, 100))
+        self.assertEqual(set(combined.loc[:99, "motor_source"]), {"工控log"})
+        self.assertEqual(set(combined.loc[100:, "motor_source"]), {"监控log参考值"})
+        self.assertTrue(combined.loc[100:, "target_power_seconds"].isna().all())
+
+    def test_partial_machine_log_matches_unique_monitor_window(self):
+        monitor, segments = alignment_frames(planned=120, completed=100, machine_layers=range(41, 101))
+        alignment, combined, _ = _align_sources(monitor, segments)
+
+        self.assertEqual(alignment["status"], "matched")
+        self.assertEqual(alignment["confidence"], "高可信")
+        self.assertEqual(alignment["coverage"], "partial_completed")
+        self.assertEqual((alignment["matched_layer_start"], alignment["matched_layer_end"]), (41, 100))
+        self.assertEqual(alignment["matched_segments"], 60)
+        self.assertEqual(set(combined.loc[40:99, "motor_source"]), {"工控log"})
+        self.assertEqual(set(combined.loc[:39, "motor_source"]), {"监控log参考值"})
+
+    def test_partial_machine_log_can_ignore_one_segment_at_each_edge(self):
+        monitor, segments = alignment_frames(
+            planned=120, completed=100, machine_layers=range(41, 101), edge_materials=("L", "H"),
+        )
+        cases = {
+            "first": (segments.iloc[:-1].copy(), [1]),
+            "last": (segments.iloc[1:].copy(), [62]),
+            "both": (segments.copy(), [1, 62]),
+        }
+        for name, (candidate, ignored) in cases.items():
+            with self.subTest(name=name):
+                alignment, _, _ = _align_sources(monitor, candidate)
+                self.assertEqual(alignment["status"], "matched")
+                self.assertEqual((alignment["matched_layer_start"], alignment["matched_layer_end"]), (41, 100))
+                self.assertEqual(alignment["ignored_machine_edge_segments"], ignored)
+
+    def test_unfinished_run_under_thirty_layers_is_not_auto_matched(self):
+        monitor, segments = alignment_frames(planned=50, completed=20)
+        alignment, _, _ = _align_sources(monitor, segments)
+        self.assertEqual(alignment["status"], "failed")
+        self.assertIn("少于 30", alignment["reason"])
+
+    def test_internal_monitor_time_gap_is_not_auto_matched(self):
+        monitor, segments = alignment_frames(planned=50, completed=40)
+        monitor.loc[20, ["layer_start", "layer_end", "actual_time"]] = [pd.NaT, pd.NaT, None]
+        alignment, _, _ = _align_sources(monitor, segments)
+        self.assertEqual(alignment["status"], "failed")
+        self.assertIn("时间数据缺口", alignment["reason"])
+
+    def test_multiple_high_confidence_partial_candidates_require_review(self):
+        monitor, first = alignment_frames(planned=60, completed=60, machine_layers=range(1, 31))
+        second = first.copy()
+        second["segment_id"] += 100
+        second["session_id"] = 2
+        second["start"] += pd.Timedelta(seconds=180)
+        second["end"] += pd.Timedelta(seconds=180)
+        alignment, _, _ = _align_sources(monitor, pd.concat([first, second], ignore_index=True))
+        self.assertEqual(alignment["status"], "failed")
+        self.assertIn("多个同级最高可信候选", alignment["reason"])
+        self.assertGreaterEqual(len(alignment["candidate_ranges"]), 2)
 
     def test_combined_alignment_skips_non_coating_segments_between_monitor_runs(self):
         start = pd.Timestamp("2026-06-15 21:00:00")
@@ -587,7 +712,12 @@ class AnalyzerTests(unittest.TestCase):
         self.assertIn("if(material==='H')return COLORS[0]", html)
         self.assertIn("if(material==='L')return COLORS[1]", html)
         self.assertIn("splitByMaterial=!['o2_mean','ar_mean'].includes(metric)", html)
-        self.assertIn("alignment.confidence==='中可信'?'已关联（待复核）':'已关联'", html)
+        self.assertIn("alignment.coverage==='partial_completed'", html)
+        self.assertIn("已关联（部分区间，待复核）", html)
+        self.assertIn("当前理论层数", html)
+        self.assertIn("当前已完成层数", html)
+        self.assertIn("当前已关联层数", html)
+        self.assertIn("整炉关联范围", html)
         self.assertNotIn("原始时间 %{", html)
         self.assertNotIn("实际时间 %{", html)
         self.assertNotIn("#62afd2", html)

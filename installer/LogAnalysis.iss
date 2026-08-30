@@ -1,6 +1,6 @@
 #define MyAppName "Log Analysis"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.0-beta.7"
+  #define MyAppVersion "0.1.0-beta.8"
 #endif
 #define MyNumericVersion "0.1.0.0"
 #define MyAppPublisher "Reyppp"
