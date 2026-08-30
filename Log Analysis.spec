@@ -17,7 +17,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["streamlit"],
+    excludes=["pyarrow", "streamlit"],
     noarchive=False,
     optimize=1,
 )

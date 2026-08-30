@@ -33,11 +33,11 @@
 ### 下载与校验
 
 1. 升级前先关闭所有正在运行的 Log Analysis 窗口。
-2. 下载 [Log Analysis v0.1.0-beta.6 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.6/Log-Analysis-Setup-v0.1.0-beta.6-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.6/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.6)。
+2. 下载 [Log Analysis v0.1.0-beta.7 安装程序](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.7/Log-Analysis-Setup-v0.1.0-beta.7-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/Reyppp/log-analysis/releases/download/v0.1.0-beta.7/SHA256SUMS.txt)。也可以先查看[完整版本说明](https://github.com/Reyppp/log-analysis/releases/tag/v0.1.0-beta.7)。
 3. 在下载目录打开 PowerShell，运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.6-x64.exe
+Get-FileHash -Algorithm SHA256 .\Log-Analysis-Setup-v0.1.0-beta.7-x64.exe
 Get-Content .\SHA256SUMS.txt
 ```
 
@@ -45,9 +45,9 @@ Get-Content .\SHA256SUMS.txt
 
 ### 安装与首次使用
 
-1. 双击 `Log-Analysis-Setup-v0.1.0-beta.6-x64.exe`。
+1. 双击 `Log-Analysis-Setup-v0.1.0-beta.7-x64.exe`。
 2. 在安装向导中选择安装目录；程序默认安装到当前用户目录，不需要管理员权限，桌面快捷方式可选。
-3. 桌面位于其他磁盘或使用目录链接时，安装程序会使用 Windows 登记的真实桌面路径；快捷方式创建失败也不会中断应用安装，可改用开始菜单启动。
+3. 桌面位于其他磁盘或使用目录链接时，安装程序会把已验证的开始菜单快捷方式复制到 Windows 登记的真实桌面路径；创建失败也不会中断应用安装。
 4. 当前版本是未签名测试版。若 SmartScreen 显示“Windows 已保护你的电脑”，请先确认 SHA-256 已匹配，再选择“更多信息”，核对文件名后选择“仍要运行”。如果组织安全策略禁止运行，请联系管理员，不要关闭系统安全功能。
 5. 安装完成后，从开始菜单打开 **Log Analysis**。
 6. 点击“选择文件夹”，选择炉次日志目录，再点击“开始分析”。所有数据只在本机处理。

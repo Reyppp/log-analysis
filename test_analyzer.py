@@ -871,17 +871,22 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn(b"\r\n", content)
             self.assertNotIn(b"\n", content.replace(b"\r\n", b""))
 
-    def test_installer_allows_directory_selection_and_tolerates_desktop_shortcut_failure(self):
-        script = (Path(__file__).parent / "installer" / "LogAnalysis.iss").read_text(encoding="utf-8")
+    def test_installer_allows_directory_selection_and_copies_desktop_shortcut(self):
+        project = Path(__file__).parent
+        script = (project / "installer" / "LogAnalysis.iss").read_text(encoding="utf-8")
+        spec = (project / "Log Analysis.spec").read_text(encoding="utf-8")
         self.assertIn("DisableDirPage=no", script)
         self.assertNotIn('Name: "{autodesktop}\\{#MyAppName}"', script)
         self.assertIn("User Shell Folders", script)
         self.assertIn("WizardIsTaskSelected('desktopicon')", script)
-        self.assertIn("CreateShellLink(", script)
+        self.assertNotIn("CreateShellLink(", script)
+        self.assertIn("CopyFile(StartMenuShortcutPath, ShortcutPath, False)", script)
+        self.assertIn("ExpandConstant('{group}\\{#MyAppName}.lnk')", script)
         self.assertIn("except", script)
         self.assertIn("已完成安装，但桌面快捷方式创建失败", script)
         self.assertIn("RegWriteStringValue(HKCU, InstallerSettingsKey", script)
         self.assertIn("DeleteFile(ShortcutPath)", script)
+        self.assertIn('excludes=["pyarrow", "streamlit"]', spec)
 
     def test_public_site_is_local_only_and_links_to_releases(self):
         project = Path(__file__).parent
