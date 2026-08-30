@@ -1,6 +1,6 @@
 #define MyAppName "Log Analysis"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.0-beta.6"
+  #define MyAppVersion "0.1.0-beta.7"
 #endif
 #define MyNumericVersion "0.1.0.0"
 #define MyAppPublisher "Reyppp"
@@ -106,22 +106,16 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var
-  ShortcutPath: String;
+  ShortcutPath, StartMenuShortcutPath: String;
 begin
   if (CurStep = ssPostInstall) and WizardIsTaskSelected('desktopicon') then
   begin
     ShortcutPath := GetDesktopShortcutPath('');
+    StartMenuShortcutPath := ExpandConstant('{group}\{#MyAppName}.lnk');
     try
       ForceDirectories(ExtractFileDir(ShortcutPath));
-      CreateShellLink(
-        ShortcutPath,
-        '{#MyAppName}',
-        ExpandConstant('{app}\{#MyAppExeName}'),
-        '',
-        ExpandConstant('{app}'),
-        ExpandConstant('{app}\{#MyAppExeName}'),
-        0,
-        SW_SHOWNORMAL);
+      if not CopyFile(StartMenuShortcutPath, ShortcutPath, False) then
+        RaiseException('Unable to copy the Start menu shortcut to the desktop');
       RegWriteStringValue(HKCU, InstallerSettingsKey,
         'DesktopShortcut', ShortcutPath);
     except
