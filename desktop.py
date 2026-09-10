@@ -19,6 +19,7 @@ from version import APP_NAME, APP_VERSION, BUILD_CHANNEL, RELEASES_URL
 
 LOGGER = logging.getLogger(__name__)
 MUTEX_NAME = "Local\\LogAnalysisDesktop"
+IS_WINDOWS = sys.platform == "win32"
 
 
 def configure_logging() -> Path:
@@ -33,10 +34,37 @@ def configure_logging() -> Path:
 
 
 def show_message(message: str, title: str = APP_NAME) -> None:
-    ctypes.windll.user32.MessageBoxW(None, message, title, 0x40)
+    if IS_WINDOWS:
+        ctypes.windll.user32.MessageBoxW(None, message, title, 0x40)
+        return
+    try:
+        from AppKit import NSAlert
+
+        alert = NSAlert.alloc().init()
+        alert.setMessageText_(title)
+        alert.setInformativeText_(message)
+        alert.addButtonWithTitle_("好")
+        alert.runModal()
+    except Exception:
+        LOGGER.warning("user message: %s", message)
+
+
+def webview_backend() -> str:
+    return "edgechromium" if IS_WINDOWS else "cocoa"
+
+
+def configure_webview_backend() -> str:
+    backend = webview_backend()
+    if IS_WINDOWS:
+        os.environ.setdefault("PYWEBVIEW_GUI", backend)
+    else:
+        os.environ["PYWEBVIEW_GUI"] = backend
+    return backend
 
 
 def acquire_single_instance() -> int | None:
+    if not IS_WINDOWS:
+        return 1
     kernel32 = ctypes.windll.kernel32
     user32 = ctypes.windll.user32
     kernel32.CreateMutexW.restype = ctypes.c_void_p
@@ -137,7 +165,7 @@ def main() -> None:
         log_path = server.settings_path().parent / "logs" / "app.log"
         logging.basicConfig(level=logging.INFO, force=True)
     LOGGER.info("starting version=%s channel=%s", APP_VERSION, BUILD_CHANNEL)
-    os.environ.setdefault("PYWEBVIEW_GUI", "edgechromium")
+    backend = configure_webview_backend()
     httpd = None
     worker = None
     ready = threading.Event()
@@ -173,7 +201,7 @@ def main() -> None:
                 show_message(f"Log Analysis 启动时间过长。请关闭后重试；诊断日志位于：\n{log_path}")
 
         threading.Thread(target=watch_startup, name="startup-watchdog", daemon=True).start()
-        webview.start(gui="edgechromium", debug=False)
+        webview.start(gui=backend, debug=False)
     except Exception as exc:
         LOGGER.exception("desktop startup failed")
         show_message(f"Log Analysis 启动失败：{exc}\n\n诊断日志：{log_path}")
@@ -186,7 +214,8 @@ def main() -> None:
         if worker is not None:
             worker.join(timeout=3)
         LOGGER.info("stopped")
-        ctypes.windll.kernel32.CloseHandle(mutex)
+        if IS_WINDOWS:
+            ctypes.windll.kernel32.CloseHandle(mutex)
 
 
 if __name__ == "__main__":
