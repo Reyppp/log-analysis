@@ -20,13 +20,15 @@ class DesktopPlatformTests(unittest.TestCase):
         )
         user32 = SimpleNamespace(FindWindowW=lambda *_args: 0)
         fake_windll = SimpleNamespace(kernel32=kernel32, user32=user32)
-        with patch.object(desktop, "IS_WINDOWS", True), patch.object(desktop.ctypes, "windll", fake_windll):
+        with patch.object(desktop, "IS_WINDOWS", True), patch.object(
+            desktop.ctypes, "windll", fake_windll, create=True
+        ):
             self.assertEqual(desktop.webview_backend(), "edgechromium")
             self.assertIsNotNone(desktop.acquire_single_instance())
 
     def test_mac_uses_cocoa_without_touching_windll(self):
         with patch.object(desktop, "IS_WINDOWS", False), patch.object(
-            desktop.ctypes, "windll", _UnexpectedWindll()
+            desktop.ctypes, "windll", _UnexpectedWindll(), create=True
         ), patch.dict(os.environ, {}, clear=True):
             self.assertEqual(desktop.webview_backend(), "cocoa")
             self.assertEqual(desktop.configure_webview_backend(), "cocoa")
