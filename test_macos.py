@@ -14,12 +14,12 @@ class MacSettingsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder, patch.object(Path, 'home', return_value=Path(folder)), patch.object(server.sys, 'platform', 'darwin'):
             old = Path(folder) / 'AppData/Local/Log Analysis/settings.json'
             old.parent.mkdir(parents=True)
-            old.write_text('{"last_folder":"旧炉次"}')
+            old.write_text('{"last_folder":"旧炉次"}', encoding='utf-8')
             self.assertEqual(server.saved_path(), '旧炉次')
             self.assertEqual(server.settings_path(), Path(folder) / 'Library/Application Support/Log Analysis/settings.json')
             server.save_path('新炉次')
             self.assertEqual(server.saved_path(), '新炉次')
-            self.assertIn('旧炉次', old.read_text())
+            self.assertIn('旧炉次', old.read_text(encoding='utf-8'))
 
     def test_windows_settings_unchanged(self):
         with patch.object(server.sys, 'platform', 'win32'), patch.dict('os.environ', {'LOCALAPPDATA': '/tmp/windows-local'}):
