@@ -1,3 +1,9 @@
+## 最新交付（2026-09-27）
+
+- beta.10 日期版 DMG 和校验文件已保存至 `/Users/rey/Downloads/`，文件名为 `Log-Analysis-v0.1.0-beta.10-macOS-arm64-20260927.dmg`。
+- 当前安装说明：[MAC_USAGE.md](MAC_USAGE.md)。本轮安装和验证证据：[mac-summary.md](release/upgrade-20260927/mac-summary.md)。旧应用与设置已备份，原始日志未修改。
+- 以下 9 月 26 日及更早条目为历史记录；旧下载链接失效的说明不适用于本次日期版。
+
 ## 当前入口（2026-09-26 复核）
 
 - 当前 Mac 项目：`/Users/rey/GPT/projects/L.Log-Analysis`，本地测试版 `0.1.0-beta.10`。

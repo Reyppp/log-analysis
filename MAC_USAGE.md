@@ -4,7 +4,7 @@
 
 ## 安装
 
-1. 打开 `Log-Analysis-v0.1.0-beta.10-macOS-arm64.dmg`。
+1. 打开下载文件夹中的 `Log-Analysis-v0.1.0-beta.10-macOS-arm64-20260927.dmg`。
 2. 将 **Log Analysis** 拖到 **Applications（应用程序）**。覆盖旧版前先退出应用。
 3. 从“应用程序”打开 Log Analysis，再退出磁盘映像。
 
@@ -28,9 +28,11 @@ CSV 使用工具栏导出；图表使用图内的“保存 PNG”按钮。选择
 
 构建生成独立 `.app`、DMG 与 SHA-256，并将后两者复制到“下载”文件夹。Windows 构建继续使用原有 spec 和 Inno Setup。
 
-## 当前产物与源码基线（2026-09-26）
+## 当前产物与源码基线（2026-09-27）
 
-当前有效 DMG 位于项目 `release/`；9 月 20 日回复中的 Downloads 链接已失效。参见 [当前交接入口](MAC_HANDOFF.md) 和 [源码基线与独立重建说明](docs/beta10-baseline.md)。先运行 `tools/build_macos.py` 生成图标和应用，不直接运行依赖预生成图标的 spec。本次仅保存源码基线，不重建或替换历史 DMG。
+当前日期版 DMG 与 `.dmg.sha256` 已保存到 `/Users/rey/Downloads/`，项目 `release/` 也保留副本。SHA-256：`1f2e09f68c127f446cfa3f622bf95a9cd1c8e03ddf47276cfe4391b494db8dc7`。
+
+完整功能验收见 [原交付记录](release/MAC_VALIDATION.md)；日期版构建、独立安装、真实分析、CSV 导出和重开验证见 [本轮记录](release/upgrade-20260927/mac-summary.md)。本轮未重复全部视觉验收。源码基线说明见 [独立重建说明](docs/beta10-baseline.md)。先运行 `tools/build_macos.py` 生成图标和应用，不直接运行依赖预生成图标的 spec。
 
 ## 2026-09-27 包版本标识补正
 
