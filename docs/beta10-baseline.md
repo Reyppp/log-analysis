@@ -4,7 +4,7 @@
 
 ## 纳入与排除
 
-保存当前 `analyzer.py`、`desktop.py`、`server.py`、`index.html`、`version.py`、对应测试、Mac spec、构建脚本、前端检查和使用说明。分析器中此前已存在的同层多次运行关联修复也随基线保存：它已在现存 DMG 内，不能退回旧 HEAD 后称为 beta.10。现有许可证、图标、Windows spec、网站合成演示等已跟踪文件继续随提交导出。
+保存当前 `analyzer.py`、`desktop.py`、`server.py`、`index.html`、`version.py`、对应测试、Mac spec、构建脚本、前端检查和使用说明。分析器中此前已存在的同层多次运行关联修复也随基线保存：它已在现存 DMG 内，不能退回旧 HEAD 后称为 beta.10。现有许可证、图标、Windows spec、网站合成演示等已跟踪文件继续随提交导出。独立导出发现三个 Windows BAT 在旧 Git 对象中为 LF、工作区为 CRLF；补充 `.gitattributes` 的 `*.bat -text` 并保存现有 CRLF 字节，使归档也保留换行，不修改脚本逻辑。
 
 Windows Inno Setup 的未提交 beta.8 → beta.9 默认版本修改不属于 Mac 基线，留在原工作区。`.DS_Store`、真实炉次日志、数据库、备份、凭据、虚拟环境、缓存、`build/`、`dist/`、`release/` 和本机设置不纳入；不删除这些文件。测试使用源码内生成的合成样本，真实样本不属于提交。
 

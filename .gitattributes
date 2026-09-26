@@ -1,0 +1,2 @@
+# Preserve Windows batch CRLF bytes in both checkout and git archive.
+*.bat -text
