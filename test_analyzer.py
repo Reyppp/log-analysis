@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import threading
 import unittest
@@ -16,6 +17,7 @@ from analyzer import (
     AnalysisError,
     SUMMARY_COLUMNS,
     _align_sources,
+    _monitor_time_fragments,
     analyze_folder,
     compute_correlations,
     csv_bytes,
@@ -90,6 +92,85 @@ def alignment_frames(planned=120, completed=100, machine_layers=None, edge_mater
 
 
 class AnalyzerTests(unittest.TestCase):
+    def test_interrupted_layers_keep_attempts_and_skip_debug_power(self):
+        monitor, machine = alignment_frames(planned=100, completed=90)
+        attempts = []
+        for layer in (35, 65):
+            index = layer - 1
+            original_start = monitor.loc[index, "layer_start"]
+            monitor.loc[index:, "layer_start"] += pd.Timedelta(hours=1)
+            monitor.loc[index:, "layer_end"] += pd.Timedelta(hours=1)
+            machine.loc[index:, "start"] += pd.Timedelta(hours=1)
+            machine.loc[index:, "end"] += pd.Timedelta(hours=1)
+            material = monitor.loc[index, "material"]
+            attempts.append({"layer": layer, "material": material, "start": original_start,
+                             "end": original_start + pd.Timedelta(seconds=20)})
+        raw = []
+        for row in monitor.dropna(subset=["layer_start"]).to_dict("records"):
+            raw.extend({"layer": row["layer"], "material": row["material"], "_time": t}
+                       for t in pd.date_range(row["layer_start"], row["layer_end"], freq="2s"))
+        extras = []
+        for n, attempt in enumerate(attempts):
+            raw.extend({"layer": attempt["layer"], "material": attempt["material"], "_time": t}
+                       for t in pd.date_range(attempt["start"], attempt["end"], freq="2s"))
+            monitor.loc[monitor.layer.eq(attempt["layer"]), "layer_start"] = attempt["start"]
+            for debug in (False, True):
+                extras.append({
+                    "segment_id": 1000 + n * 2 + debug, "session_id": 1, "material": attempt["material"],
+                    "start": attempt["start"] + pd.Timedelta(seconds=180 + debug * 600),
+                    "end": attempt["end"] + pd.Timedelta(seconds=180 + debug * 600),
+                    "target_seconds": 24,
+                    **{f"motor_{suffix}": 280.0 for suffix in ("mean", "std", "min", "max", "range")},
+                })
+        machine = pd.concat([machine, pd.DataFrame(extras)], ignore_index=True).sort_values("start")
+        machine["session_id"] = machine["start"].sub(machine["end"].shift()).dt.total_seconds().ge(300).cumsum()
+        alignment, summary, _ = _align_sources(monitor, machine, pd.DataFrame(raw))
+        self.assertEqual(alignment["status"], "matched")
+        self.assertEqual(alignment["matched_segments"], 90)
+        self.assertEqual(alignment["matched_work_segments"], 92)
+        self.assertEqual(alignment["pending_fragments"], 0)
+        self.assertEqual(alignment["interrupted_layers"], [35, 65])
+        self.assertAlmostEqual(alignment["time_offset_seconds"], 180)
+        self.assertTrue(machine.loc[machine.segment_id.isin([1001, 1003]), "layer"].isna().all())
+        self.assertEqual(machine.loc[machine.segment_id.eq(1000), "layer"].iloc[0], 35)
+        pd.testing.assert_series_equal(summary.actual_time, monitor.actual_time)
+        pd.testing.assert_series_equal(summary.layer_start, monitor.layer_start)
+        self.assertTrue(summary.loc[summary.layer.isin([35, 65]), "target_time_delta"].isna().all())
+
+    def test_fragment_split_retains_rows_and_does_not_count_normal_cadence_as_stop(self):
+        times = list(pd.date_range("2026-01-01", periods=10, freq="2s"))
+        times += list(pd.date_range("2026-01-01 00:10:00", periods=15, freq="2s"))
+        raw = pd.DataFrame({"layer": 7, "material": "H", "_time": times})
+        fragments = _monitor_time_fragments(raw)
+        self.assertEqual(fragments.rows.tolist(), [10, 15])
+        self.assertEqual(fragments.sample_seconds.tolist(), [18, 28])
+        self.assertEqual(len(raw), 25)
+
+    def test_interrupted_attempt_ambiguity_or_clock_change_stays_pending(self):
+        for duplicate, clock_shift in ((True, 0), (False, 60)):
+            with self.subTest(duplicate=duplicate, clock_shift=clock_shift):
+                monitor, machine = alignment_frames(planned=80, completed=80)
+                first = monitor.iloc[0]
+                start = first.layer_start - pd.Timedelta(hours=1)
+                raw = pd.DataFrame({
+                    "layer": 1, "material": first.material,
+                    "_time": list(pd.date_range(start, periods=11, freq="2s"))
+                             + list(pd.date_range(first.layer_start, first.layer_end, freq="2s")),
+                })
+                monitor.loc[0, "layer_start"] = start
+                extras = []
+                for index in range(2 if duplicate else 1):
+                    extras.append({**machine.iloc[0].to_dict(), "segment_id": 1000 + index,
+                                   "session_id": 0, "start": start + pd.Timedelta(seconds=180 + clock_shift),
+                                   "end": start + pd.Timedelta(seconds=200 + clock_shift), "target_seconds": 24})
+                machine = pd.concat([pd.DataFrame(extras), machine], ignore_index=True)
+                alignment, summary, _ = _align_sources(monitor, machine, raw)
+                self.assertEqual(alignment["status"], "matched")
+                self.assertEqual(alignment["pending_fragments"], 1)
+                self.assertEqual(alignment["monitor_fragments"][0]["status"], "pending")
+                self.assertTrue(machine.loc[machine.segment_id.ge(1000), "layer"].isna().all())
+                self.assertEqual(summary.loc[0, "actual_time"], monitor.loc[0, "actual_time"])
+
     def test_mixed_clock(self):
         self.assertEqual(parse_mixed_datetime("2026-08-20  13:00:00 PM"), datetime(2026, 8, 20, 13, 0, 0))
         self.assertEqual(parse_mixed_datetime("2026-08-20  01:00:00 PM"), datetime(2026, 8, 20, 13, 0, 0))
@@ -821,7 +902,7 @@ class AnalyzerTests(unittest.TestCase):
         public = {name: getattr(api, name) for name in dir(api) if not name.startswith("_")}
         self.assertEqual(
             set(public),
-            {"choose_folder", "get_version", "open_releases", "save_export"},
+            {"choose_folder", "get_version", "open_releases", "save_export", "save_image"},
         )
         self.assertTrue(all(callable(value) for value in public.values()))
         self.assertFalse(hasattr(api, "window"))
@@ -987,7 +1068,7 @@ class AnalyzerTests(unittest.TestCase):
                 server.STATE.update(initial_state)
 
     def test_corrupt_settings_do_not_block_startup(self):
-        with tempfile.TemporaryDirectory() as folder, patch.dict("os.environ", {"LOCALAPPDATA": folder}), patch.object(
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "settings_path", return_value=Path(folder) / "settings" / "settings.json"), patch.object(
             server, "LEGACY_LAST_FOLDER", Path(folder) / "missing.txt"
         ):
             server.settings_path().parent.mkdir(parents=True)
@@ -1024,7 +1105,8 @@ class AnalyzerTests(unittest.TestCase):
         demo_js = (project / "site" / "demo.js").read_text(encoding="utf-8")
         readme = (project / "README.md").read_text(encoding="utf-8")
         release_notes = (project / "RELEASE_NOTES.md").read_text(encoding="utf-8")
-        version = desktop.APP_VERSION
+        # Local builds can be newer than the installer published on the site.
+        version = re.search(r'releases/download/v([^/]+)/Log-Analysis-Setup-', html).group(1)
         installer_url = (
             f"https://github.com/Reyppp/log-analysis/releases/download/v{version}/"
             f"Log-Analysis-Setup-v{version}-x64.exe"

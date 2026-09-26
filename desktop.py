@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import base64
+import re
 import secrets
 import sys
 import threading
@@ -105,7 +107,7 @@ class DesktopApi:
             return {"path": path, "cancelled": cancelled, "changed": changed}
         except Exception as exc:
             return {
-                "error": f"无法打开 Windows 文件夹选择器：{exc}",
+                "error": f"无法打开文件夹选择器：{exc}",
                 "code": "folder_picker_failed",
                 "recovery": "请关闭残留的选择窗口后重试；如仍失败，请重新启动 Log Analysis。",
             }
@@ -121,17 +123,42 @@ class DesktopApi:
             frame, name = server.export_frame(result, kind, float(threshold))
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
-        selected = self._window.create_file_dialog(
-            webview.FileDialog.SAVE,
-            directory=str(Path.home() / "Downloads"),
-            save_filename=name,
-            file_types=("CSV 文件 (*.csv)",),
-        )
-        if not selected:
-            return {"ok": True, "cancelled": True}
-        path = Path(selected[0] if isinstance(selected, (tuple, list)) else selected)
-        path.write_bytes(csv_bytes(frame))
-        return {"ok": True, "cancelled": False, "path": str(path)}
+        return self._save_bytes(csv_bytes(frame), name, "CSV 文件 (*.csv)")
+
+    def _save_bytes(self, data: bytes, name: str, file_type: str) -> dict[str, object]:
+        import server
+
+        try:
+            selected = self._window.create_file_dialog(
+                webview.FileDialog.SAVE, directory=str(Path.home() / "Downloads"),
+                save_filename=name, file_types=(file_type,),
+            )
+            if not selected:
+                return {"ok": True, "cancelled": True}
+            path = Path(selected[0] if isinstance(selected, (tuple, list)) else selected)
+            if not path.suffix:
+                path = path.with_suffix(Path(name).suffix)
+            source = str(server.STATE.get("path") or "")
+            if source and path.resolve().is_relative_to(Path(source).resolve()):
+                return {"ok": False, "error": "请保存到原始日志文件夹之外，以保护源数据。"}
+            path.write_bytes(data)
+            return {"ok": True, "cancelled": False, "path": str(path)}
+        except Exception as exc:
+            LOGGER.exception("export failed")
+            return {"ok": False, "error": f"保存失败：{exc}。请选择可写入的位置重试。"}
+
+    def save_image(self, data_url: str, title: str = "镀膜图表") -> dict[str, object]:
+        try:
+            prefix = "data:image/png;base64,"
+            if not isinstance(data_url, str) or not data_url.startswith(prefix):
+                raise ValueError("无效的 PNG 图像")
+            data = base64.b64decode(data_url[len(prefix):], validate=True)
+            if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+                raise ValueError("无效的 PNG 图像")
+            name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', str(title))[:100] or "镀膜图表"
+            return self._save_bytes(data, name + ".png", "PNG 图像 (*.png)")
+        except (ValueError, TypeError) as exc:
+            return {"ok": False, "error": str(exc)}
 
 
 def smoke_test() -> None:
@@ -187,7 +214,7 @@ def main() -> None:
             text_select=True,
         )
         api = DesktopApi(window)
-        window.expose(api.get_version, api.open_releases, api.choose_folder, api.save_export)
+        window.expose(api.get_version, api.open_releases, api.choose_folder, api.save_export, api.save_image)
 
         def page_loaded() -> None:
             ready.set()

@@ -5,6 +5,7 @@ import logging
 import mimetypes
 import os
 import secrets
+from socketserver import TCPServer
 import subprocess
 import sys
 import threading
@@ -565,13 +566,18 @@ def device_time_series(
 
 
 def settings_path() -> Path:
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / APP_NAME / "settings.json"
     base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
     return base / APP_NAME / "settings.json"
 
 
 def read_settings() -> dict:
     try:
-        value = json.loads(settings_path().read_text(encoding="utf-8"))
+        target = settings_path()
+        if sys.platform == "darwin" and not target.exists():
+            target = Path.home() / "AppData" / "Local" / APP_NAME / "settings.json"
+        value = json.loads(target.read_text(encoding="utf-8"))
         return value if isinstance(value, dict) else {}
     except (OSError, ValueError, TypeError):
         return {}
@@ -906,8 +912,16 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
 
+class LocalHTTPServer(ThreadingHTTPServer):
+    def server_bind(self) -> None:
+        # The loopback-only service needs no reverse DNS lookup at startup.
+        TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
 def create_server(port: int = 0, token: str = "") -> ThreadingHTTPServer:
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    httpd = LocalHTTPServer(("127.0.0.1", port), Handler)
     httpd.api_token = token
     httpd.daemon_threads = True
     httpd.block_on_close = False

@@ -1,0 +1,33 @@
+// Run with Node.js: node tools/test_frontend.cjs
+const {readFileSync}=require('node:fs');
+const vm=require('node:vm');
+const assert=require('node:assert/strict');
+const html=readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+const start=html.indexOf('function thicknessSummary('),end=html.indexOf('function renderOverview(',start);
+const filter=html.slice(html.indexOf('function filteredLayerRows('),html.indexOf('function filteredMachineSegments('));
+const context=vm.createContext({});
+vm.runInContext(`let payload,viewState={scope:'monitor'};const inputs={'layer-min':{value:1},'layer-max':{value:5}}, choices={material:['H','L'],method:['Optical','Time']};const $=id=>inputs[id],num=Number,checked=name=>choices[name];${html.slice(start,end)}${filter}`,context);
+vm.runInContext(`
+const records=[{layer:1,material:'H',method:'Optical',phy_thick:10.125},{layer:2,material:'L',method:'Time',phy_thick:20.125},{layer:3,material:'H',method:'Optical',phy_thick:null},{layer:4,material:'L',method:'Time',phy_thick:0},{layer:5,material:'H',method:'Optical',phy_thick:5,layer_end:null}];
+payload={summary:records,monitor_summary:records};
+globalThis.result=thicknessSummary(rows());
+globalThis.card=thicknessCard(rows());
+choices.material=['H'];inputs['layer-min'].value=3;
+globalThis.hOnly=thicknessSummary(rows());
+viewState.scope='combined';globalThis.combined=thicknessSummary(rows());
+choices.method=['Time'];globalThis.empty=rows().length;
+globalThis.missing=thicknessSummary([{phy_thick:null},{},{phy_thick:''},{phy_thick:NaN},{phy_thick:Infinity}]);
+`,context);
+assert.equal(context.result.total,35.25);
+assert.equal(context.result.valid,4);
+assert.match(context.card,/H 15.13 nm（不完整）/);
+assert.match(context.card,/L 20.13 nm/);
+assert.match(context.card,/有效 4\/5 层/);
+assert.equal(context.hOnly.total,5);
+assert.equal(context.hOnly.valid,1);
+assert.equal(context.combined.total,5);
+assert.equal(context.empty,0);
+assert.equal(context.missing.total,null);
+assert.equal((html.match(/\$\{thicknessCard\(r\)\}/g)||[]).length,2);
+new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+console.log('Frontend thickness: totals, H/L, incomplete, pending layer, filters, modes, empty and syntax passed.');

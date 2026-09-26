@@ -1,3 +1,14 @@
+## 当前入口（2026-09-26 复核）
+
+- 当前 Mac 项目：`/Users/rey/GPT/projects/L.Log-Analysis`，本地测试版 `0.1.0-beta.10`。
+- 运行、安装与构建：[MAC_USAGE.md](MAC_USAGE.md)；源码基线与独立导出方法：[docs/beta10-baseline.md](docs/beta10-baseline.md)。本次将已交付的 beta.10 源码、必要测试和构建入口保存为本地 Git 基线，不推送或发布；确切提交号及导出验证见周回顾执行记录。
+- 现存安装包：[release/Log-Analysis-v0.1.0-beta.10-macOS-arm64.dmg](release/Log-Analysis-v0.1.0-beta.10-macOS-arm64.dmg)。SHA-256：`9019820ba0b330aa351382c1611815b915e2e48d55692c3cb8f032cc6369d71c`，本日重新核对一致。
+- 当次实际验收：[release/MAC_VALIDATION.md](release/MAC_VALIDATION.md)，记录的是 9 月 20 日交付，不代表本次重新运行完整视觉、安装或真实样本验收。`release/` 为保留在本机的忽略目录，不随源码提交导出。
+- **9 月 20 日回复中的 `/Users/rey/Downloads/Log-Analysis-v0.1.0-beta.10-macOS-arm64.dmg` 历史下载链接现已失效**；文件不存在的原因未核实，当前使用上方项目内链接。
+- 以下 9 月 11 日迁移目录、beta.9、环境与验证内容原样保留，属于历史记录。接续时以当前入口开始，并重新核对本地状态。
+
+---
+
 # Log Analysis（镀膜日志分析）：Mac 接续交接
 
 更新日期：2026-09-11

@@ -926,7 +926,113 @@ def _analyze_machine_logs(
     return summary, sessions, segments, events, frame
 
 
-def _align_sources(layer_summary: pd.DataFrame, segments: pd.DataFrame) -> tuple[dict[str, Any], pd.DataFrame, pd.DataFrame]:
+def _monitor_time_fragments(data: pd.DataFrame) -> pd.DataFrame:
+    """Keep separate attempts in a layer; a recording gap is not coating time."""
+    rows = []
+    for layer, group in data.groupby("layer", sort=True):
+        group = group.sort_values("_time").drop_duplicates("_time")
+        gaps = group["_time"].diff().dt.total_seconds()
+        cadence = float(gaps[gaps.gt(0)].median()) if gaps.gt(0).any() else 2.0
+        for attempt, (_, part) in enumerate(group.groupby(gaps.gt(max(30, cadence * 3)).cumsum()), 1):
+            rows.append({
+                "layer": int(layer), "attempt": attempt, "material": part["material"].iloc[0],
+                "start": part["_time"].iloc[0], "end": part["_time"].iloc[-1],
+                "rows": len(part), "sample_seconds": (part["_time"].iloc[-1] - part["_time"].iloc[0]).total_seconds(),
+                "cadence": cadence,
+            })
+    return pd.DataFrame(rows)
+
+
+def _align_monitor_fragments(layer_summary: pd.DataFrame, segments: pd.DataFrame, data: pd.DataFrame):
+    fragments = _monitor_time_fragments(data)
+    if fragments.empty or not fragments["layer"].duplicated().any():
+        return _align_sources(layer_summary, segments)
+    interrupted = set(fragments.loc[fragments["layer"].duplicated(), "layer"])
+    reference = layer_summary.copy()
+    for layer in interrupted:
+        indexes = reference.index[reference["layer"].eq(layer)]
+        if not len(indexes):
+            continue
+        index = indexes[0]
+        last = fragments[fragments["layer"].eq(layer)].iloc[-1]
+        # MeasPower may contain only the final attempt. Do not use its duration
+        # together with the first attempt's timestamp, or sum it as total deposition.
+        if abs(last["sample_seconds"] - reference.loc[index, "actual_time"]) <= max(8, last["cadence"] * 3):
+            reference.loc[index, "layer_start"] = last["start"]
+            reference.loc[index, "layer_end"] = last["end"]
+    alignment, summary, reviews = _align_sources(reference, segments)
+    summary[["layer_start", "layer_end"]] = layer_summary[["layer_start", "layer_end"]]
+    records = []
+    if alignment["status"] == "matched":
+        offset = alignment["time_offset_seconds"]
+        tolerance = 8.0 if alignment["confidence"] == "高可信" else 15.0
+        linked = segments.dropna(subset=["layer"])
+        linked_layers = set(linked["layer"])
+        # Estimate the normal power-on tail from the already verified layers.
+        ends = reference.set_index("layer")["layer_end"]
+        tail = (linked["end"] - pd.to_datetime(linked["layer"].map(ends))).dt.total_seconds() - offset
+        end_offset = float(tail.median())
+        claims = {}
+        for fragment in fragments[fragments["layer"].isin(interrupted)].to_dict("records"):
+            candidates = segments[
+                segments["material"].eq(fragment["material"])
+                & (segments["start"] - fragment["start"]).dt.total_seconds().sub(offset).abs().le(tolerance)
+                & (segments["end"] - fragment["end"]).dt.total_seconds().sub(offset + end_offset).abs().le(tolerance)
+                & (segments["layer"].isna() | segments["layer"].eq(fragment["layer"]))
+            ]
+            if fragment["layer"] not in linked_layers:
+                candidates = candidates.iloc[0:0]
+            ids = candidates["segment_id"].astype(int).tolist()
+            record = {**fragment, "status": "pending", "machine_segment_id": None, "candidate_segment_ids": ids}
+            records.append(record)
+            if len(ids) == 1:
+                claims.setdefault(ids[0], []).append(record)
+        for segment_id, claimants in claims.items():
+            if len(claimants) != 1:
+                continue
+            record = claimants[0]
+            record.update(status="matched", machine_segment_id=segment_id)
+            segments.loc[segments["segment_id"].eq(segment_id), "layer"] = record["layer"]
+        for layer in interrupted:
+            group = segments[segments["layer"].eq(layer)]
+            if group.empty:
+                continue
+            index = summary.index[summary["layer"].eq(layer)][0]
+            motor = group[group["motor_mean"].notna()]
+            if not motor.empty:
+                weights = motor["rows"] if "rows" in motor else motor["target_seconds"]
+                means = motor["motor_mean"]
+                mean = float((means * weights).sum() / weights.sum())
+                variance = float(((motor["motor_std"] ** 2 + (means - mean) ** 2) * weights).sum() / weights.sum())
+                summary.loc[index, "motor_mean"] = mean
+                summary.loc[index, "motor_std"] = math.sqrt(max(0, variance))
+                summary.loc[index, "motor_min"] = motor["motor_min"].min()
+                summary.loc[index, "motor_max"] = motor["motor_max"].max()
+                summary.loc[index, "motor_range"] = motor["motor_max"].max() - motor["motor_min"].min()
+            summary.loc[index, "target_power_seconds"] = group["target_seconds"].sum()
+            summary.loc[index, "target_time_delta"] = math.nan
+        if not reviews.empty:
+            reviews = reviews[~(reviews["layer"].isin(interrupted) & reviews["metric"].eq("target_time_delta"))].reset_index(drop=True)
+        alignment["matched_work_segments"] = int(segments["layer"].notna().sum())
+        alignment["unmatched_work_segments"] = int(segments["layer"].isna().sum())
+        alignment["reason"] += " 已按连续采样片段核验同层多次运行；实际镀膜时间保留监控记录口径。"
+    else:
+        records = [{**row, "status": "pending", "machine_segment_id": None, "candidate_segment_ids": []}
+                   for row in fragments[fragments["layer"].isin(interrupted)].to_dict("records")]
+        alignment["reason"] += " 同层多次运行尚未获得稳定时间基准，请复核时间记录。"
+    alignment["interrupted_layers"] = sorted(int(layer) for layer in interrupted)
+    alignment["monitor_fragments"] = records
+    alignment["pending_fragments"] = sum(row["status"] != "matched" for row in records)
+    if alignment["pending_fragments"]:
+        alignment["reason"] += " 存在未唯一匹配的运行片段，请在关联诊断中复核候选时段及日志覆盖范围。"
+    return alignment, summary, reviews
+
+
+def _align_sources(
+    layer_summary: pd.DataFrame, segments: pd.DataFrame, monitor_data: pd.DataFrame | None = None,
+) -> tuple[dict[str, Any], pd.DataFrame, pd.DataFrame]:
+    if monitor_data is not None and not monitor_data.empty:
+        return _align_monitor_fragments(layer_summary, segments, monitor_data)
     summary = layer_summary.copy()
     for suffix in ("mean", "std", "min", "max", "range"):
         summary[f"monitor_motor_{suffix}"] = summary.get(f"motor_{suffix}")
@@ -1022,7 +1128,7 @@ def _align_sources(layer_summary: pd.DataFrame, segments: pd.DataFrame) -> tuple
             continue
         candidates.append(make_candidate(completed, candidate, "all_completed"))
 
-    if not candidates:
+    if not any(candidate["confidence"] for candidate in candidates):
         gap_seconds = pd.to_datetime(completed["layer_start"], errors="coerce").sub(
             pd.to_datetime(completed["layer_end"], errors="coerce").shift()
         ).dt.total_seconds()
@@ -1287,7 +1393,9 @@ def analyze_folder(
     if monitor_available and machine_available:
         if progress:
             progress("双源关联", len(result.layer_summary), len(result.layer_summary))
-        alignment, result.layer_summary, cross_source = _align_sources(result.layer_summary, machine_segments)
+        alignment, result.layer_summary, cross_source = _align_sources(
+            result.layer_summary, machine_segments, result.monitor_device_data,
+        )
     if machine_available:
         machine_data = _annotate_machine_device_data(machine_data, machine_segments, result.layer_summary)
 
