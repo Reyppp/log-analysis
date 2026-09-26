@@ -16,14 +16,14 @@ Windows Inno Setup 的未提交 beta.8 → beta.9 默认版本修改不属于 Ma
 
 本次只读挂载现有 DMG，逐项比较包内 `analyzer`、`server`、`version`、`desktop` 的 Python 代码对象与当前源码在 Python 3.12、optimize=1 下的编译结果（仅标准化构建路径），全部一致；`index.html` 字节一致。该检查覆盖运行入口，不表示每个依赖或整个 DMG 能逐字节重复构建。
 
-9 月 20 日安装与原生交互验收仍保存在本机 `release/MAC_VALIDATION.md`；它不进入源码归档。9 月 26 日独立导出检查及确切提交号见周回顾执行记录。
+9 月 20 日安装与原生交互验收仍保存在本机 `release/MAC_VALIDATION.md`；它不进入源码归档。9 月 26 日已验证源码基线为 `01c72a90b4646b3285912de353864d8bdc703fc7`；独立导出检查见[周回顾执行记录](/Users/rey/GPT/NP/2026-09-15/f/outputs/AI使用周回顾/2026-09-26-Log基线执行.md)。本次仅补注入口文档，文档提交与已验证源码基线区分，不改变上述编号。
 
 ## 从明确提交独立导出
 
-将下面的 `BASELINE_COMMIT` 替换为执行记录中的完整提交号；`EXPORT_DIR` 必须是新建的空目录，避免混入原工作区代码。
+下面的 `BASELINE_COMMIT` 已固定为通过独立导出检查的源码基线；`EXPORT_DIR` 必须是新建的空目录，避免混入原工作区代码。
 
 ```sh
-BASELINE_COMMIT=<执行记录中的提交号>
+BASELINE_COMMIT=01c72a90b4646b3285912de353864d8bdc703fc7
 EXPORT_DIR=<独立空目录的绝对路径>
 mkdir -p "$EXPORT_DIR"
 git archive "$BASELINE_COMMIT" | tar -x -C "$EXPORT_DIR"
