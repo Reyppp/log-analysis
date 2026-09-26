@@ -1,6 +1,7 @@
 """Build the self-contained Apple Silicon application and local DMG."""
 from pathlib import Path
 import hashlib
+from datetime import date
 import platform
 import shutil
 import subprocess
@@ -18,6 +19,11 @@ def run(*args):
 def main():
     if sys.platform != 'darwin' or platform.machine() != 'arm64':
         raise SystemExit('Build this package on an Apple Silicon Mac.')
+    name = f'Log-Analysis-v{APP_VERSION}-macOS-arm64-{date.today():%Y%m%d}.dmg'
+    output = ROOT / 'release' / name
+    downloads = Path.home() / 'Downloads'
+    if output.exists() or (downloads / name).exists():
+        raise SystemExit(f'Package already exists; preserve or rename it before rebuilding: {name}')
     from PIL import Image, ImageDraw, ImageFont
 
     work = ROOT / 'build' / 'mac'
@@ -41,13 +47,10 @@ def main():
     shutil.copy2(ROOT / 'MAC_USAGE.md', stage / '安装说明.md')
     release = ROOT / 'release'
     release.mkdir(exist_ok=True)
-    name = f'Log-Analysis-v{APP_VERSION}-macOS-arm64.dmg'
-    output = release / name
     run('/usr/bin/hdiutil', 'create', '-volname', 'Log Analysis', '-srcfolder', str(stage),
         '-ov', '-format', 'UDZO', str(output))
     checksum = release / f'{name}.sha256'
     checksum.write_text(f'{hashlib.sha256(output.read_bytes()).hexdigest()}  {name}\n')
-    downloads = Path.home() / 'Downloads'
     downloads.mkdir(exist_ok=True)
     for source in (output, checksum):
         shutil.copy2(source, downloads / source.name)

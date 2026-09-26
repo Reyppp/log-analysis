@@ -19,7 +19,10 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='Log Analysis',
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='Log Analysis')
 app = BUNDLE(coll, name='Log Analysis.app', icon='build/mac/icon.icns',
              bundle_identifier='com.rey.loganalysis', version=version['APP_VERSION'],
-             info_plist={'CFBundleShortVersionString': '0.1.0',
+             info_plist={'CFBundleShortVersionString': version['APP_VERSION'].split('-')[0],
+                         'CFBundleVersion': '10.1',
+                         'CFBundleGetInfoString': version['APP_NAME'] + ' ' + version['APP_VERSION'],
+                         'LogAnalysisVersion': version['APP_VERSION'],
                          'NSHighResolutionCapable': True,
                          'NSDocumentsFolderUsageDescription': '选择并只读分析镀膜日志。',
                          'NSDownloadsFolderUsageDescription': '保存分析结果和图表。'})
