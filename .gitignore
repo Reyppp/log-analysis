@@ -1,3 +1,4 @@
+.DS_Store
 .venv/
 __pycache__/
 *.py[cod]
@@ -9,6 +10,7 @@ release/
 *.spec.bak
 .last_folder.txt
 .impeccable/review/
+.impeccable/critique/
 *.log
 *.csv
 *.CSV
