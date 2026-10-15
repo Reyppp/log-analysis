@@ -1,10 +1,10 @@
 # Log Analysis macOS 版
 
-版本：0.1.0-beta.10。本包适用于 Apple 芯片 Mac；已在 macOS 27.0 验证的项目见交付验证记录。无需安装 Python 或其他开发工具。
+版本：0.1.0-beta.10，Mac 构建号 10.2。本包适用于 Apple 芯片 Mac；实际验证项目见交付验证记录。无需安装 Python 或其他开发工具。
 
 ## 安装
 
-1. 打开下载文件夹中的 `Log-Analysis-v0.1.0-beta.10-macOS-arm64-20260927.dmg`。
+1. 打开下载文件夹中的 `Log-Analysis-v0.1.0-beta.10-macOS-arm64-20261015.dmg`。
 2. 将 **Log Analysis** 拖到 **Applications（应用程序）**。覆盖旧版前先退出应用。
 3. 从“应用程序”打开 Log Analysis，再退出磁盘映像。
 
@@ -28,9 +28,15 @@ CSV 使用工具栏导出；图表使用图内的“保存 PNG”按钮。选择
 
 构建生成独立 `.app`、DMG 与 SHA-256，并将后两者复制到“下载”文件夹。Windows 构建继续使用原有 spec 和 Inno Setup。
 
-## 当前产物与源码基线（2026-09-27）
+## 界面更新（2026-10-15）
 
-当前日期版 DMG 与 `.dmg.sha256` 已保存到 `/Users/rey/Downloads/`，项目 `release/` 也保留副本。SHA-256：`1f2e09f68c127f446cfa3f622bf95a9cd1c8e03ddf47276cfe4391b494db8dc7`。
+保留蓝灰配色，调整总览、筛选、异常分页、导出范围说明及顶部工具栏对齐；不改变计算代码和原始日志。功能版本仍为 `0.1.0-beta.10`，Mac 构建号更新为 `10.2`。
+
+日期版 DMG 与 `.dmg.sha256` 保存在“下载”文件夹和项目 `release/`。本机更新、备份与验证记录见 [本轮记录](release/upgrade-20261015-112238/UPGRADE_REPORT.md)。
+
+## 历史产物与源码基线（2026-09-27）
+
+当日 DMG 与 `.dmg.sha256` 已保存到 `/Users/rey/Downloads/`，项目 `release/` 也保留副本。历史包 SHA-256：`1f2e09f68c127f446cfa3f622bf95a9cd1c8e03ddf47276cfe4391b494db8dc7`。
 
 完整功能验收见 [原交付记录](release/MAC_VALIDATION.md)；日期版构建、独立安装、真实分析、CSV 导出和重开验证见 [本轮记录](release/upgrade-20260927/mac-summary.md)。本轮未重复全部视觉验收。源码基线说明见 [独立重建说明](docs/beta10-baseline.md)。先运行 `tools/build_macos.py` 生成图标和应用，不直接运行依赖预生成图标的 spec。
 

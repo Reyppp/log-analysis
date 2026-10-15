@@ -20,7 +20,7 @@ coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='Log Analy
 app = BUNDLE(coll, name='Log Analysis.app', icon='build/mac/icon.icns',
              bundle_identifier='com.rey.loganalysis', version=version['APP_VERSION'],
              info_plist={'CFBundleShortVersionString': version['APP_VERSION'].split('-')[0],
-                         'CFBundleVersion': '10.1',
+                         'CFBundleVersion': '10.2',
                          'CFBundleGetInfoString': version['APP_NAME'] + ' ' + version['APP_VERSION'],
                          'LogAnalysisVersion': version['APP_VERSION'],
                          'NSHighResolutionCapable': True,

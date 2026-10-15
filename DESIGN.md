@@ -32,6 +32,7 @@ Use `Segoe UI`, `Microsoft YaHei`, then system sans-serif. Numeric log paths and
 
 - Desktop application: fixed top operation bar, source-context switch, contextual left navigation, sticky filter row, and one active analysis module in the main work area. The source switch offers only the detected modes in the order 综合, 监控log, 工控log. Combined and work-control contexts each expose two modules; segmentation remains an internal calculation rather than a navigation destination.
 - The primary desktop viewport is 1440×900 with a 960×640 minimum. Below 900px, module navigation becomes horizontal.
+- Overviews show four core statistics in one desktop row; whole-batch context remains visible in a compact status line. The module rail can collapse, and chart headers reserve less space while preserving titles, legends and layer axes.
 - Public site: generous editorial sections with a split hero followed by one interactive workbench that recreates the desktop operation bar, source switch, module navigation, filters and active analysis view. Combined, monitor-log and work-control scopes share this workbench instead of appearing as separate explanations. On desktop the client view sits beside its explanation panel; at ≤1050px the explanation moves below and focuses/reveals after a hotspot is selected. Privacy and installation sections follow.
 - Use spacing in a 4px-derived rhythm. Dense controls may use 8–12px gaps; sections use 24–40px; public-site sections use 64px or more.
 
@@ -56,6 +57,10 @@ Time charts use a Plotly top secondary x-axis for coating layers. It overlays an
 ### Tables and status
 
 Visible columns use Chinese field names from shared metadata. Unknown fields must be shown as `未命名字段（内部名）` instead of disappearing. Empty, loading, disconnected and failed states explain both the condition and the next recovery action.
+
+Tables show the total and current record range with 120-row pages. Anomaly review offers layer groups and unchanged detailed records; layer links open the corresponding optical detail under the current filters. Numeric layer input respects the filtered layer set. Large Z scores use scientific notation with the original value available on hover; statistical definitions and thresholds do not change.
+
+The filter row provides range validation, a selection summary and reset. CSV actions explicitly export the whole batch regardless of display filters, with the current anomaly threshold; exports and calculations retain their existing scope.
 
 ## Accessibility and motion
 
